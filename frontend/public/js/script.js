@@ -21,11 +21,11 @@ const regions = {
   gale: {
     id: "gale",
     title: "Gale Crater",
-    subtitle: "CTX false-color <span>·</span> regional terrain + Curiosity science",
+    subtitle: "CTX warm-tone display <span>·</span> regional terrain + Curiosity science",
     credit: "CTX 5 M/PIXEL · MOLA TERRAIN ~463 M/PIXEL · PDS APXS / NASA TRAVERSE",
     tileUrl: "./tiles/gale/{z}/{x}/{y}.webp",
     tileFormat: "webp",
-    layerLabel: "Gale CTX false-color view · ~5 m/pixel",
+    layerLabel: "Gale CTX warm-tone view · ~5 m/pixel",
     width: 47420,
     height: 47420,
     nativeZoom: 8,
@@ -33,7 +33,57 @@ const regions = {
     yMax: -237098.790093225,
     pixelSize: 4.9999744853063,
     hasTerrain: true,
-    terrainResolutionLabel: "Terrain source grid ≈463 m/pixel (MOLA)",
+    terrainResolutionLabel: "MOLA terrain source · 128 pixels/degree",
+  },
+  gusev: {
+    id: "gusev", title: "Gusev Crater",
+    subtitle: "Spirit landing region <span>·</span> CTX warm-tone display · 5 m/pixel",
+    credit: "CTX 5 M/PIXEL · MOLA 128 PIXELS/DEG · NASA SPIRIT MISSION",
+    tileUrl: "./tiles/gusev/{z}/{x}/{y}.webp", tileFormat: "webp",
+    layerLabel: "Gusev CTX warm-tone view · ~5 m/pixel", width: 47420, height: 47420,
+    nativeZoom: 8, xMin: 10195247.974008672, yMax: -711296.3702796748,
+    pixelSize: 4.9999744853063, hasTerrain: true,
+    terrainResolutionLabel: "MOLA terrain source · 128 pixels/degree",
+  },
+  meridiani: {
+    id: "meridiani", title: "Meridiani Planum",
+    subtitle: "Opportunity & Endeavour <span>·</span> CTX warm-tone · 5 m/pixel",
+    credit: "CTX 5 M/PIXEL · MOLA 128 PIXELS/DEG · NASA OPPORTUNITY MISSION",
+    tileUrl: "./tiles/meridiani/{z}/{x}/{y}.webp", tileFormat: "webp",
+    layerLabel: "Meridiani CTX warm-tone view · ~5 m/pixel", width: 47420, height: 47420,
+    nativeZoom: 8, xMin: -474197.58018644986, yMax: 0,
+    pixelSize: 4.999974485306304, hasTerrain: true,
+    terrainResolutionLabel: "MOLA terrain source · 128 pixels/degree",
+  },
+  pathfinder: {
+    id: "pathfinder", title: "Ares Vallis · Pathfinder",
+    subtitle: "Pathfinder landing region <span>·</span> CTX warm-tone · 5 m/pixel",
+    credit: "CTX 5 M/PIXEL · MOLA 128 PIXELS/DEG · NASA PATHFINDER MISSION",
+    tileUrl: "./tiles/pathfinder/{z}/{x}/{y}.webp", tileFormat: "webp",
+    layerLabel: "Ares Vallis CTX warm-tone view · ~5 m/pixel", width: 47420, height: 47420,
+    nativeZoom: 8, xMin: -2133889.110839024, yMax: 1185493.9504661246,
+    pixelSize: 4.999974485306304, hasTerrain: true,
+    terrainResolutionLabel: "MOLA terrain source · 128 pixels/degree",
+  },
+  viking1: {
+    id: "viking1", title: "Chryse Planitia · Viking 1",
+    subtitle: "Viking 1 landing region <span>·</span> CTX warm-tone · 5 m/pixel",
+    credit: "CTX 5 M/PIXEL · MOLA 128 PIXELS/DEG · NASA VIKING 1 MISSION",
+    tileUrl: "./tiles/viking1/{z}/{x}/{y}.webp", tileFormat: "webp",
+    layerLabel: "Chryse CTX warm-tone view · ~5 m/pixel", width: 47420, height: 47420,
+    nativeZoom: 8, xMin: -2845185.481118699, yMax: 1422592.7405593495,
+    pixelSize: 4.999974485306304, hasTerrain: true,
+    terrainResolutionLabel: "MOLA terrain source · 128 pixels/degree",
+  },
+  phoenix: {
+    id: "phoenix", title: "Vastitas Borealis · Phoenix",
+    subtitle: "Phoenix landing region <span>·</span> CTX warm-tone · 5 m/pixel",
+    credit: "CTX 5 M/PIXEL · MOLA 128 PIXELS/DEG · NASA PHOENIX MISSION",
+    tileUrl: "./tiles/phoenix/{z}/{x}/{y}.webp", tileFormat: "webp",
+    layerLabel: "Phoenix CTX warm-tone view · ~5 m/pixel", width: 47420, height: 47420,
+    nativeZoom: 8, xMin: -7587161.282983198, yMax: 4267778.221678048,
+    pixelSize: 4.999974485306304, hasTerrain: true,
+    terrainResolutionLabel: "MOLA terrain source · 128 pixels/degree",
   },
 };
 
@@ -102,6 +152,128 @@ const galeTerrainReady = fetch("./data/gale-terrain-values.f32")
   })
   .then((buffer) => { galeTerrainValues = new DataView(buffer); });
 
+const regionalTerrainFiles = new Map();
+const regionalDataCache = new Map();
+let regionalScienceLayer = null;
+let regionalLandingLayer = null;
+let missionLandingLayer = null;
+const nasaLandingSites = {
+  jezero: { name: "Perseverance · Octavia E. Butler landing site", lat: 18.4447, lon: 77.4508, source: "https://science.nasa.gov/mission/mars-2020-perseverance/where-is-perseverance/" },
+  gale: { name: "Curiosity landing site", lat: -4.5895, lon: 137.4417, source: "https://science.nasa.gov/mission/msl-curiosity/location-map/" },
+};
+
+function makeLandingLayer(regionId) {
+  const site = nasaLandingSites[regionId];
+  if (!site) return null;
+  const latlng = toMapLatLngForRegion(regions[regionId], [site.lon, site.lat]);
+  const marker = L.circleMarker(latlng, {
+    radius: 7, color: "#fff0c1", weight: 2,
+    fillColor: "#e28b58", fillOpacity: 1,
+  });
+  marker.bindPopup(`<div class="sample-card"><div class="sample-kicker">NASA LANDING SITE</div><strong>${escapeHtml(site.name)}</strong>` +
+    `<small class="mission-site-coordinate">${formatDegrees(site.lat, "N", "S")} · ${formatDegrees(((site.lon + 180) % 360) - 180, "E", "W")}</small>` +
+    `<a href="${escapeHtml(site.source)}" target="_blank" rel="noopener noreferrer">NASA mission location ↗</a></div>`);
+  return L.layerGroup([marker]);
+}
+
+function getRegionalTerrainFiles(region) {
+  if (!regionalTerrainFiles.has(region.id)) {
+    const bounds = L.latLngBounds([0, 0], [region.height, region.width]);
+    regionalTerrainFiles.set(region.id, Object.fromEntries(
+      ["elevation", "slope", "roughness", "aspect"].map((name) => [
+        name, L.imageOverlay(`./layers/${region.id}/${name}.png`, bounds, { opacity: 0.82 }),
+      ]),
+    ));
+  }
+  return regionalTerrainFiles.get(region.id);
+}
+
+async function loadRegionalData(region) {
+  if (!regionalDataCache.has(region.id)) {
+    const dataPromise = Promise.all([
+      fetch(`./data/${region.id}-map.json`).then((response) => {
+        if (!response.ok) throw new Error(`${region.title} terrain metadata is unavailable.`);
+        return response.json();
+      }),
+      fetch(`./data/${region.id}-terrain-values.f32`).then((response) => {
+        if (!response.ok) throw new Error(`${region.title} terrain sample grid is unavailable.`);
+        return response.arrayBuffer();
+      }),
+      fetch(`./data/${region.id}-science.json`).then((response) => {
+        if (!response.ok) throw new Error(`${region.title} science data is unavailable.`);
+        return response.json();
+      }),
+    ]).then(([metadata, terrainBuffer, science]) => ({
+      metadata,
+      terrain: new DataView(terrainBuffer),
+      science: science.features || [],
+      regionalContext: science.regionalContext || null,
+    }));
+    regionalDataCache.set(region.id, dataPromise);
+  }
+  const data = await regionalDataCache.get(region.id);
+  regionalDataCache.set(region.id, data);
+  if (!data.scienceLayer) {
+    data.scienceLayer = L.geoJSON({ type: "FeatureCollection", features: data.science }, {
+      coordsToLatLng: ([x, y]) => L.latLng(
+        (region.yMax - y) / region.pixelSize,
+        (x - region.xMin) / region.pixelSize,
+      ),
+      pointToLayer(_feature, latlng) {
+        return L.circleMarker(latlng, {
+          radius: 5, color: "#f5e2a4", weight: 1.5,
+          fillColor: "#d28a62", fillOpacity: 0.95,
+        });
+      },
+      onEachFeature(feature, layer) {
+        const p = feature.properties || {};
+        const lat = Number(p.latitude_deg);
+        const lon = Number(p.longitude_east_deg);
+        const signedLon = ((lon + 180) % 360 + 360) % 360 - 180;
+        const siteCoordinate = Number.isFinite(lat) && Number.isFinite(lon)
+          ? `${formatDegrees(lat, "N", "S")} · ${formatDegrees(signedLon, "E", "W")}`
+          : "Published landing position";
+        layer.bindPopup(
+          `<div class="sample-card"><div class="sample-kicker">${escapeHtml((p.kind || "MISSION SCIENCE").toUpperCase())}</div>` +
+          `<strong>${escapeHtml(p.target || p.site || p.mission || "Mission science")}</strong>` +
+          `${p.sol ? `<small>Sol ${escapeHtml(p.sol)} · ${escapeHtml(p.instrument || "")}</small>` : ""}` +
+          `${p.chemistry ? `<small>${formatChemistry(p.chemistry)}</small>` : ""}` +
+          `${p.fact ? `<p>${escapeHtml(p.fact)}</p>` : ""}` +
+          `<small class="mission-site-coordinate">Published landing position: ${escapeHtml(siteCoordinate)}</small>` +
+          `<p>${escapeHtml(p.fact || "")}</p>` +
+          `<a href="${escapeHtml(p.sourceUrl || "#")}" target="_blank" rel="noopener noreferrer">${escapeHtml(p.sourceLabel || "Mission source")} ↗</a></div>`,
+        );
+      },
+    });
+  }
+  return data;
+}
+
+function sampleRegionalAt(region, data, easting, northing) {
+  const grid = data.metadata.terrain.browserSampleGrid;
+  const column = Math.max(0, Math.min(grid.width - 1, Math.floor((easting - grid.originX) / grid.pixelSizeX)));
+  const row = Math.max(0, Math.min(grid.height - 1, Math.floor((grid.originY - northing) / grid.pixelSizeY)));
+  const cell = row * grid.width + column;
+  const bandSize = grid.width * grid.height;
+  const read = (band) => {
+    const value = data.terrain.getFloat32((band * bandSize + cell) * 4, true);
+    return Number.isFinite(value) && value > -9000 ? value : null;
+  };
+    const science = data.science.map((feature) => {
+    const [x, y] = feature.geometry?.coordinates || [NaN, NaN];
+    const meanLatitudeRadians = (y + northing) / (2 * marsRadius);
+    const eastWestGroundMeters = (x - easting) * Math.cos(meanLatitudeRadians);
+    return { ...feature.properties, distance_m: Math.hypot(eastWestGroundMeters, y - northing) };
+    }).filter((item) => item.distance_m <= (item.kind === "lander science area summary" ? 12000 : 500))
+      .sort((a, b) => a.distance_m - b.distance_m).slice(0, 5);
+  return {
+    terrain: { elevation_m: read(0), slope_degrees: read(1), roughness_m: read(2), aspect_degrees: read(3) },
+    terrainResolutionText: data.metadata.terrain.caveat,
+    science,
+    regionalFact: data.regionalContext,
+  };
+}
+
 const loadingMessage = document.querySelector("#map-loading");
 const loadingText = document.querySelector("#map-loading-text");
 const coordinateText = document.querySelector("#coordinate-text");
@@ -143,13 +315,25 @@ function createLayerControl() {
     overlays["Roughness · 20 m"] = terrainFiles.roughness;
     overlays["Aspect · 20 m"] = terrainFiles.aspect;
     if (hiriseLayer) overlays["HiRISE observations · 7 footprints"] = hiriseLayer;
+    if (missionLandingLayer) overlays["NASA landing site"] = missionLandingLayer;
   } else if (currentRegion.id === "gale") {
-    overlays["Elevation · MOLA ~463 m"] = galeTerrainFiles.elevation;
-    overlays["Slope · MOLA ~463 m"] = galeTerrainFiles.slope;
-    overlays["Roughness · MOLA ~463 m"] = galeTerrainFiles.roughness;
-    overlays["Aspect · MOLA ~463 m"] = galeTerrainFiles.aspect;
+    overlays["Elevation · MOLA 128 ppd"] = galeTerrainFiles.elevation;
+    overlays["Slope · MOLA 128 ppd"] = galeTerrainFiles.slope;
+    overlays["Roughness · MOLA 128 ppd"] = galeTerrainFiles.roughness;
+    overlays["Aspect · MOLA 128 ppd"] = galeTerrainFiles.aspect;
     if (galeTraverseLayer) overlays["Curiosity traverse · NASA"] = galeTraverseLayer;
     if (galeScienceLayer) overlays["APXS target measurements · PDS"] = galeScienceLayer;
+    if (missionLandingLayer) overlays["NASA landing site"] = missionLandingLayer;
+  } else {
+    const layers = getRegionalTerrainFiles(currentRegion);
+    overlays["Elevation · MOLA 128 ppd"] = layers.elevation;
+    overlays["Slope · MOLA 128 ppd"] = layers.slope;
+    overlays["Roughness · MOLA 128 ppd"] = layers.roughness;
+    overlays["Aspect · MOLA 128 ppd"] = layers.aspect;
+    const data = regionalDataCache.get(currentRegion.id);
+    if (data && typeof data.then !== "function" && data.scienceLayer) {
+      overlays["Mission science targets · PDS/NASA"] = data.scienceLayer;
+    }
   }
   layerControl = L.control.layers(baseLayers, overlays, {
     collapsed: window.innerWidth < 620,
@@ -176,7 +360,10 @@ function activateRegion(regionId) {
   Object.values(galeTerrainFiles).forEach((layer) => {
     if (map.hasLayer(layer)) map.removeLayer(layer);
   });
-  [galeScienceLayer, galeTraverseLayer].forEach((layer) => {
+  for (const layers of regionalTerrainFiles.values()) {
+    Object.values(layers).forEach((layer) => { if (map.hasLayer(layer)) map.removeLayer(layer); });
+  }
+  [galeScienceLayer, galeTraverseLayer, regionalScienceLayer, regionalLandingLayer, missionLandingLayer].forEach((layer) => {
     if (layer && map.hasLayer(layer)) map.removeLayer(layer);
   });
   if (layerControl) {
@@ -223,6 +410,23 @@ function activateRegion(regionId) {
   });
   basemap.addTo(map);
   if (currentRegion.id === "gale" && galeTraverseLayer) galeTraverseLayer.addTo(map);
+  if (nasaLandingSites[currentRegion.id]) {
+    missionLandingLayer = makeLandingLayer(currentRegion.id);
+    missionLandingLayer.addTo(map);
+  }
+  if (currentRegion.id !== "jezero" && currentRegion.id !== "gale") {
+    loadRegionalData(currentRegion).then((data) => {
+      if (currentRegion.id !== regionId) return;
+      regionalScienceLayer = data.scienceLayer;
+      regionalScienceLayer.addTo(map);
+      createLayerControl();
+    }).catch((error) => {
+      if (currentRegion.id === regionId) {
+        loadingText.textContent = error.message;
+        loadingMessage.classList.remove("is-hidden");
+      }
+    });
+  }
   createLayerControl();
   fitCurrentMap();
 }
@@ -253,6 +457,8 @@ basemap.on("tileerror", () => {
   loadingMessage.classList.remove("is-hidden");
 });
 basemap.addTo(map);
+missionLandingLayer = makeLandingLayer("jezero");
+missionLandingLayer.addTo(map);
 createLayerControl();
 fitCurrentMap();
 
@@ -279,6 +485,9 @@ map.on("click", async ({ latlng }) => {
     if (currentRegion.id === "gale") {
       await Promise.all([galeTerrainReady, galeScienceReady]);
       result = sampleGaleAt(easting, northing);
+    } else if (currentRegion.id !== "jezero") {
+      const data = await loadRegionalData(currentRegion);
+      result = sampleRegionalAt(currentRegion, data, easting, northing);
     } else {
       const response = await fetch(`/api/${currentRegion.id}/sample?${query}`);
       result = await response.json();
@@ -286,7 +495,9 @@ map.on("click", async ({ latlng }) => {
     }
     const scienceHtml = currentRegion.id === "gale"
       ? renderGaleScience(result.science)
-      : result.science.length
+      : currentRegion.id !== "jezero"
+        ? renderRegionalScience(result)
+        : result.science.length
         ? '<div class="sample-science"><div class="sample-kicker">SCIENCE AT THIS POINT</div>' +
           result.science.map((item) => `<a href="${escapeHtml(item.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(item.id)} ↗</a>`).join("") +
           '</div>'
@@ -334,6 +545,33 @@ function sampleGaleAt(easting, northing) {
     terrainResolutionText: "Terrain source grid ≈463 m/pixel (MOLA). Regional context only; not a meter-scale route safety assessment.",
     science,
   };
+}
+
+function renderRegionalScience(result) {
+  const nearby = result.science || [];
+  const pointSummary = nearby.length
+    ? nearby.map((item) => `<div class="gale-science-result"><strong>${escapeHtml(item.target || item.site || item.mission)}</strong>` +
+      `<small>${item.sol ? `Sol ${escapeHtml(item.sol)} · ` : ""}${formatValue(item.distance_m, 0)} m from recorded position${item.targetType ? ` · ${escapeHtml(item.targetType)}` : ""}</small>` +
+      `${item.chemistry && Object.keys(item.chemistry).length ? `<small>${formatChemistry(item.chemistry)}</small>` : ""}` +
+      `${item.fact ? `<small>${escapeHtml(item.fact)}</small>` : ""}` +
+      `<a href="${escapeHtml(item.sourceUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(item.sourceLabel || "NASA/PDS source")} ↗</a></div>`).join("")
+    : '<div class="sample-source">No published target or sampling-area marker is close to this point. The mission context below summarizes available site science.</div>';
+  const region = result.regionalFact;
+  const context = region
+    ? `<div class="gale-science-result"><strong>${escapeHtml(region.mission || "Mission science")}</strong>` +
+      `<small>${escapeHtml(region.instrument || "Mission instruments")}</small>` +
+      `<small>${escapeHtml(region.fact || "")}</small>` +
+      `<a href="${escapeHtml(region.sourceUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(region.sourceLabel || "NASA source")} ↗</a></div>`
+    : "";
+  return `<div class="sample-science"><div class="sample-kicker">NEARBY MISSION SITE</div>${pointSummary}` +
+    `<div class="sample-kicker regional-context-kicker">REGIONAL SCIENCE CONTEXT</div>${context}</div>` +
+    '<div class="sample-source">Terrain values are sampled from the clicked grid cell. Science cards show the nearest published mission observations; Viking and Phoenix markers denote approximate lander sampling areas.</div>';
+}
+
+function formatChemistry(chemistry = {}) {
+  const keys = [["SiO2_pct", "SiO₂"], ["FeO_pct", "FeO"], ["MgO_pct", "MgO"], ["SO3_pct", "SO₃"]];
+  return keys.filter(([key]) => Number.isFinite(Number(chemistry[key])))
+    .map(([key, label]) => `${label} ${formatValue(chemistry[key], 2)}%`).join(" · ");
 }
 
 function renderGaleScience(items) {

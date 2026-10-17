@@ -1,0 +1,88 @@
+{
+  "region": "Vastitas Borealis \u00b7 Phoenix",
+  "site": {
+    "title": "Vastitas Borealis \u00b7 Phoenix",
+    "site": "Phoenix landing site",
+    "mission": "Phoenix Mars Lander",
+    "instrument": "Robotic Arm, TEGA and MECA",
+    "mola": "megt44n180hb.img",
+    "lat": 68.22,
+    "lon": 234.25,
+    "source": "https://science.nasa.gov/mission/mars-phoenix/",
+    "sourceLabel": "NASA Phoenix mission",
+    "terrainUrl": "https://pds-geosciences.wustl.edu/mgs/urn-nasa-pds-mgs_mola_topography_derived/meg128/megt44n180hb.img",
+    "scienceGroup": "Phoenix"
+  },
+  "basemap": {
+    "source": "MarsWalk_data/1.0/01_Raw_Data/CTX/global_regions/phoenix_vastitas_borealis_E-128_N68_Mosaic.tif",
+    "sourceType": "Single-band grayscale CTX mosaic; colorized for display only",
+    "display": "Warm Mars-tone color ramp applied to grayscale intensity",
+    "width": 47420,
+    "height": 47420,
+    "nativeResolutionMetersPerPixel": 4.999974485306314,
+    "webTiles": "../tiles/phoenix/{z}/{x}/{y}.webp",
+    "maxZoom": 8,
+    "crs": "Mars_2015_Ocentric_Equidistant_Cylindrical",
+    "semiMajorAxisMeters": 3396190.0,
+    "extentMeters": {
+      "xmin": -7587161.282983198,
+      "ymin": 4030679.431584824,
+      "xmax": -7350062.492889972,
+      "ymax": 4267778.221678048
+    },
+    "terrainLayersAvailable": true,
+    "sciencePointDataAvailable": true
+  },
+  "terrain": {
+    "source": "MGS MOLA MEGDR megt44n180hb.img",
+    "sourceUrl": "https://pds-geosciences.wustl.edu/mgs/urn-nasa-pds-mgs_mola_topography_derived/meg128/megt44n180hb.img",
+    "sourceResolutionPixelsPerDegree": 128,
+    "nominalEquatorialResolutionMetersPerPixel": 463.0576672,
+    "displayGridProjectedMetersPerPixel": 463.0576672,
+    "derivedProducts": {
+      "elevation": {
+        "units": "m above MOLA areoid"
+      },
+      "slope": {
+        "units": "degrees",
+        "method": "GDAL Horn slope derived from MOLA elevation"
+      },
+      "roughness": {
+        "units": "m",
+        "method": "3\u00d73-cell elevation range derived from MOLA elevation"
+      },
+      "aspect": {
+        "units": "degrees clockwise from north",
+        "method": "GDAL aspect derived from MOLA elevation"
+      }
+    },
+    "caveat": "MOLA MEGDR is gridded at 128 pixels per degree (about 463 m per degree of latitude; east-west ground spacing is smaller at high latitudes). These are regional terrain samples, not metre-scale hazards or a human-foot route safety assessment.",
+    "extentMeters": {
+      "xmin": -7587161.282983198,
+      "ymin": 4030679.431584824,
+      "xmax": -7350062.492889972,
+      "ymax": 4267778.221678048
+    },
+    "browserSampleGrid": {
+      "file": "phoenix-terrain-values.f32",
+      "byteOrder": "little-endian float32",
+      "bandOrder": [
+        "elevation_m",
+        "slope_degrees",
+        "roughness_m",
+        "aspect_degrees"
+      ],
+      "width": 512,
+      "height": 512,
+      "originX": -7587161.282983198,
+      "originY": 4267778.221678048,
+      "pixelSizeX": 463.0835744008309,
+      "pixelSizeY": 463.0835744008291,
+      "noData": -9999.0
+    }
+  },
+  "scienceCoverage": {
+    "landingSiteContext": "NASA mission / landing-site summaries. Landing marker location is published mission location; regional facts are context, not point measurements.",
+    "pdsTargetEncyclopedia": "NASA/PDS Mars Target Encyclopedia associates named science targets with documents but does not supply coordinate-tagged point geometry for all targets."
+  }
+}

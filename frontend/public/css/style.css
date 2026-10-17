@@ -233,6 +233,10 @@ body {
   top: 82px;
   left: 18px;
   width: 154px;
+  max-height: calc(100dvh - 112px);
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(210, 138, 98, .42) transparent;
   padding: 10px;
   border: 1px solid rgba(240, 234, 220, .12);
   border-radius: 14px;
@@ -301,6 +305,7 @@ body {
 
 .mars-sample-popup .leaflet-popup-content { margin: 15px 17px; }
 .sample-card { min-width: 205px; font-family: Arial, sans-serif; }
+.mission-site-coordinate { display: block; margin-top: 6px; color: rgba(240, 234, 220, .6); font: 9px "DM Mono", Consolas, monospace; line-height: 1.45; }
 .sample-kicker { margin-bottom: 7px; color: #d28a62; font: 9px "DM Mono", Consolas, monospace; letter-spacing: .12em; }
 .sample-coordinates { margin-bottom: 12px; color: rgba(240, 234, 220, .62); font: 10px "DM Mono", Consolas, monospace; }
 .sample-grid { display: grid; grid-template-columns: 1fr auto; gap: 7px 16px; align-items: baseline; font-size: 12px; }
@@ -318,9 +323,9 @@ body {
 .leaflet-interactive { outline: none; }
 
 @media (max-width: 620px) {
-  .map-region-sidebar { top: 72px; left: 12px; width: 135px; padding: 7px; }
+  .map-region-sidebar { top: 72px; left: 12px; width: 135px; max-height: calc(100dvh - 94px); padding: 7px; }
   .region-option { padding: 7px 5px; }
-  .region-option-copy small { font-size: 8px; }
+  .region-option-copy small { font-size: 8px; white-space: normal; line-height: 1.25; }
   .map-title-card { top: 72px; left: 163px; max-width: calc(100vw - 175px); padding: 12px; }
   .map-title-card h1 { font-size: 18px; }
   .map-title-card p { max-width: 180px; font-size: 9px; line-height: 1.4; }
