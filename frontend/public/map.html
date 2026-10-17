@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#100b08" />
+    <title>MarsWalk — Jezero Surface Map</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="./css/style.css" />
+    <style>
+      .map-home {
+        position: absolute;
+        z-index: 1000;
+        top: 18px;
+        left: 18px;
+        padding: 11px 16px;
+        border: 1px solid rgba(255, 255, 255, .35);
+        border-radius: 999px;
+        background: rgba(17, 14, 12, .88);
+        color: #fff;
+        font: 600 12px Arial, sans-serif;
+        text-decoration: none;
+        backdrop-filter: blur(10px);
+      }
+      .map-home:hover { background: #32251e; }
+    </style>
+  </head>
+  <body>
+    <main class="map-page">
+      <div id="map" aria-label="Interactive map of Jezero Crater"></div>
+      <a class="map-home" href="./"><span aria-hidden="true">←</span> MARSWALK</a>
+      <aside class="map-region-sidebar" aria-label="Choose a Mars region">
+        <div class="region-sidebar-heading">MAP REGIONS</div>
+        <button class="region-option is-active" type="button" data-region="jezero" aria-pressed="true">
+          <span class="region-number">01</span>
+          <span class="region-option-copy"><strong>Jezero</strong><small>Crater · terrain data</small></span>
+          <span class="region-status" aria-hidden="true"></span>
+        </button>
+        <button class="region-option" type="button" data-region="gale" aria-pressed="false">
+          <span class="region-number">02</span>
+          <span class="region-option-copy"><strong>Gale</strong><small>CTX false-color · 5 m grid</small></span>
+          <span class="region-status" aria-hidden="true"></span>
+        </button>
+      </aside>
+      <div class="map-title-card">
+        <span class="map-kicker">MARS SURFACE ATLAS</span>
+        <h1 id="region-title">Jezero Crater</h1>
+        <p id="region-subtitle">Final Jezero mosaic <span>·</span> 1 m / pixel output grid</p>
+      </div>
+      <div class="map-coordinate" id="map-coordinate" aria-live="polite">
+        <span class="coordinate-dot"></span>
+        <span id="coordinate-text">SELECT A LOCATION</span>
+      </div>
+      <div class="map-loading" id="map-loading" role="status">
+        <span class="loading-spinner" aria-hidden="true"></span>
+        <span id="map-loading-text">Loading Jezero map layers…</span>
+      </div>
+      <div class="map-credit" id="map-credit">MARS 2000 · FINAL JEZERO MOSAIC · TERRAIN: 20 M SOURCE DATA</div>
+    </main>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="./js/script.js"></script>
+  </body>
+</html>

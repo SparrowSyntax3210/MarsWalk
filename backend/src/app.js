@@ -12,6 +12,11 @@ const terrainDirectory = path.resolve(
   __dirname,
   "../../../MarsWalk_data/1.0/02_Processed/CTX/MARSWALK_TERRAIN_CLIPPED",
 );
+const galeTerrainDirectory = path.resolve(
+  __dirname,
+  "../../../MarsWalk_data/1.0/07_WEB_EXPORT/gale",
+);
+const galePublicDataDirectory = path.resolve(__dirname, "../../frontend/public/data");
 const rasterFiles = {
   elevation_m: "MARSWALK_ELEVATION_20m_CLIPPED.tif",
   slope_degrees: "MARSWALK_SLOPE_20m_CLIPPED.tif",
@@ -34,6 +39,14 @@ try {
   hiriseFeatures = JSON.parse(fs.readFileSync(footprintPath, "utf8")).features || [];
 } catch (error) {
   console.warn(`Jezero HiRISE features could not be loaded: ${error.message}`);
+}
+
+let galeScienceFeatures = [];
+try {
+  const sciencePath = path.join(galePublicDataDirectory, "gale-science.json");
+  galeScienceFeatures = JSON.parse(fs.readFileSync(sciencePath, "utf8")).features || [];
+} catch (error) {
+  console.warn(`Gale APXS target features could not be loaded: ${error.message}`);
 }
 
 function pointInRing(longitude, latitude, ring) {
@@ -63,8 +76,8 @@ function featureContains(feature, longitude, latitude) {
   return false;
 }
 
-function sampleRaster(filename, easting, northing) {
-  const rasterPath = path.join(terrainDirectory, filename);
+function sampleRaster(filename, easting, northing, directory = terrainDirectory) {
+  const rasterPath = path.join(directory, filename);
   const output = execFileSync(
     gdalLocationInfo,
     ["-valonly", "-geoloc", rasterPath, String(easting), String(northing)],
@@ -115,6 +128,90 @@ app.get("/api/jezero/sample", (req, res) => {
   } catch (error) {
     console.error("Jezero coordinate query failed:", error.message);
     return res.status(503).json({ error: "Terrain sampling is unavailable. Check that GDAL is installed and the Jezero rasters are present." });
+  }
+});
+
+const galeRasterFiles = {
+  elevation_m: "gale_elevation_mola_463m.tif",
+  slope_degrees: "gale_slope_mola_463m.tif",
+  roughness_m: "gale_roughness_mola_463m.tif",
+  aspect_degrees: "gale_aspect_mola_463m.tif",
+};
+const galeBounds = {
+  xmin: 8061358.863169648,
+  ymin: -474197.58018645,
+  xmax: 8298457.653262872,
+  ymax: -237098.790093225,
+};
+const galeTerrainResolutionMeters = 463.0577;
+
+app.get("/api/gale/sample", (req, res) => {
+  const easting = Number(req.query.easting);
+  const northing = Number(req.query.northing);
+  if (!Number.isFinite(easting) || !Number.isFinite(northing)) {
+    return res.status(400).json({ error: "Provide numeric easting and northing coordinates in meters." });
+  }
+  if (easting < galeBounds.xmin || easting >= galeBounds.xmax ||
+      northing <= galeBounds.ymin || northing > galeBounds.ymax) {
+    return res.status(400).json({ error: "The clicked coordinate is outside the Gale map extent." });
+  }
+
+  const longitude = (easting / marsRadiusMeters) * (180 / Math.PI);
+  const latitude = (northing / marsRadiusMeters) * (180 / Math.PI);
+  try {
+    const terrain = Object.fromEntries(
+      Object.entries(galeRasterFiles).map(([field, filename]) => [
+        field,
+        sampleRaster(filename, easting, northing, galeTerrainDirectory),
+      ]),
+    );
+    const nearby = galeScienceFeatures
+      .map((feature) => {
+        const properties = feature.properties || {};
+        const dx = Number(properties.easting_m) - easting;
+        const dy = Number(properties.northing_m) - northing;
+        return { properties, distance_m: Math.hypot(dx, dy) };
+      })
+      .filter((candidate) => Number.isFinite(candidate.distance_m) && candidate.distance_m <= 150)
+      .sort((a, b) => a.distance_m - b.distance_m);
+    const seenTargets = new Set();
+    const science = nearby
+      .filter(({ properties }) => {
+        const key = `${properties.target}|${properties.waypoint}`;
+        if (seenTargets.has(key)) return false;
+        seenTargets.add(key);
+        return true;
+      })
+      .slice(0, 3)
+      .map(({ properties, distance_m }) => ({
+        id: properties.id,
+        target: properties.target,
+        waypoint: properties.waypoint,
+        sol: properties.sol,
+        stratigraphicFormation: properties.stratigraphicFormation,
+        stratigraphicMember: properties.stratigraphicMember,
+        chemistry: properties.chemistry,
+        distance_m,
+        sourceUrl: properties.sourceUrl,
+      }));
+
+    return res.json({
+      region: "Gale Crater",
+      coordinateSystem: "Mars 2015 Ocentric Equidistant Cylindrical, east-positive",
+      coordinates: { easting_m: easting, northing_m: northing, longitude_east: longitude, latitude_north: latitude },
+      terrain,
+      terrainResolutionMeters: galeTerrainResolutionMeters,
+      terrainResolutionText: "MOLA terrain is about 463 m per cell. Slope, aspect and 3×3 elevation-range roughness are derived from that grid; it does not resolve metre-scale hazards or establish a foot route as safe.",
+      science,
+      sources: {
+        imagery: "Caltech Bruce Murray Laboratory Global CTX Mosaic V01, tile E136_N-08",
+        terrain: "NASA MGS MOLA MEGDR PDS product megt00n090hb; regional display and derivatives at about 463 m per cell",
+        science: "NASA Trek Curiosity traverse geometry and NASA PDS Geosciences APXS target summaries through sol 3712",
+      },
+    });
+  } catch (error) {
+    console.error("Gale coordinate query failed:", error.message);
+    return res.status(503).json({ error: "Gale terrain sampling is unavailable. Check that the prepared MOLA rasters and GDAL are present." });
   }
 });
 
