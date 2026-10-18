@@ -3,86 +3,195 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#100b08" />
-    <title>MarsWalk — Jezero Surface Map</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <link rel="stylesheet" href="./css/style.css" />
-    <style>
-      .map-home {
-        position: absolute;
-        z-index: 1000;
-        top: 18px;
-        left: 18px;
-        padding: 11px 16px;
-        border: 1px solid rgba(255, 255, 255, .35);
-        border-radius: 999px;
-        background: rgba(17, 14, 12, .88);
-        color: #fff;
-        font: 600 12px Arial, sans-serif;
-        text-decoration: none;
-        backdrop-filter: blur(10px);
+    <title>Mars 3D & 2D Mission Explorer with Menu-Driven Routing</title>
+
+    <!-- Leaflet CSS for 2D Panning Map -->
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    />
+    <link rel="stylesheet" href="./css/map.css" />
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://unpkg.com/three@0.180.0/build/three.module.js",
+          "three/addons/": "https://unpkg.com/three@0.180.0/examples/jsm/"
+        }
       }
-      .map-home:hover { background: #32251e; }
-    </style>
+    </script>
   </head>
   <body>
-    <main class="map-page">
-      <div id="map" aria-label="Interactive map of Jezero Crater"></div>
-      <a class="map-home" href="./"><span aria-hidden="true">←</span> MARSWALK</a>
-      <aside class="map-region-sidebar" aria-label="Choose a Mars region">
-        <div class="region-sidebar-heading">MAP REGIONS</div>
-        <button class="region-option is-active" type="button" data-region="jezero" aria-pressed="true">
-          <span class="region-number">01</span>
-          <span class="region-option-copy"><strong>Jezero</strong><small>Crater · terrain data</small></span>
-          <span class="region-status" aria-hidden="true"></span>
-        </button>
-        <button class="region-option" type="button" data-region="gale" aria-pressed="false">
-          <span class="region-number">02</span>
-          <span class="region-option-copy"><strong>Gale</strong><small>CTX false-color · 5 m grid</small></span>
-          <span class="region-status" aria-hidden="true"></span>
-        </button>
-        <button class="region-option" type="button" data-region="gusev" aria-pressed="false">
-          <span class="region-number">03</span>
-          <span class="region-option-copy"><strong>Gusev</strong><small>Spirit APXS · MOLA terrain</small></span>
-          <span class="region-status" aria-hidden="true"></span>
-        </button>
-        <button class="region-option" type="button" data-region="meridiani" aria-pressed="false">
-          <span class="region-number">04</span>
-          <span class="region-option-copy"><strong>Meridiani</strong><small>Opportunity APXS · MOLA</small></span>
-          <span class="region-status" aria-hidden="true"></span>
-        </button>
-        <button class="region-option" type="button" data-region="pathfinder" aria-pressed="false">
-          <span class="region-number">05</span>
-          <span class="region-option-copy"><strong>Ares Vallis</strong><small>Sojourner APXS · MOLA</small></span>
-          <span class="region-status" aria-hidden="true"></span>
-        </button>
-        <button class="region-option" type="button" data-region="viking1" aria-pressed="false">
-          <span class="region-number">06</span>
-          <span class="region-option-copy"><strong>Chryse Planitia</strong><small>Viking XRFS · MOLA</small></span>
-          <span class="region-status" aria-hidden="true"></span>
-        </button>
-        <button class="region-option" type="button" data-region="phoenix" aria-pressed="false">
-          <span class="region-number">07</span>
-          <span class="region-option-copy"><strong>Phoenix</strong><small>MECA / TEGA · MOLA</small></span>
-          <span class="region-status" aria-hidden="true"></span>
-        </button>
-      </aside>
-      <div class="map-title-card">
-        <span class="map-kicker">MARS SURFACE ATLAS</span>
-        <h1 id="region-title">Jezero Crater</h1>
-        <p id="region-subtitle">Final Jezero mosaic <span>·</span> 1 m / pixel output grid</p>
+    <!-- SVG Warm-Tone Color Grading LUT for CTX Satellite Tiles -->
+    <svg width="0" height="0" style="position: absolute; pointer-events: none">
+      <defs>
+        <filter id="ctx-warm-tone" color-interpolation-filters="sRGB">
+          <feColorMatrix
+            type="matrix"
+            values="0.36 0.36 0.36 0 -0.03
+                    0.36 0.36 0.36 0 -0.03
+                    0.36 0.36 0.36 0 -0.03
+                    0    0    0    1  0"
+          />
+          <feComponentTransfer>
+            <feFuncR
+              type="table"
+              tableValues="0.09 0.22 0.38 0.55 0.70 0.82 0.92"
+            />
+            <feFuncG
+              type="table"
+              tableValues="0.04 0.10 0.19 0.30 0.42 0.55 0.70"
+            />
+            <feFuncB
+              type="table"
+              tableValues="0.02 0.06 0.11 0.17 0.25 0.35 0.48"
+            />
+          </feComponentTransfer>
+        </filter>
+      </defs>
+    </svg>
+
+    <div class="container">
+      <!-- Left Box: 3D Mars Globe + Region Sidebar & Labels -->
+      <div class="box" id="mars-3d-box">
+        <canvas id="mars-scene"></canvas>
+        <div id="labels-3d-layer"></div>
+
+        <!-- Curated Region Selector Sidebar on Left Box -->
+        <div class="region-sidebar">
+          <div class="sidebar-title">MAP REGIONS</div>
+          <div id="region-list-container"></div>
+        </div>
       </div>
-      <div class="map-coordinate" id="map-coordinate" aria-live="polite">
-        <span class="coordinate-dot"></span>
-        <span id="coordinate-text">SELECT A LOCATION</span>
+
+      <!-- Right Box: 2D Panning Map, Telemetry & Menu-Driven Route Planner -->
+      <div class="box" id="mars-2d-box">
+        <!-- Top HUD Header -->
+        <div class="hud-top">
+          <div class="hud-subtitle">MARS SURFACE ATLAS · TELEMETRY</div>
+          <div id="region-title">Gale Crater — Curiosity Landing Site</div>
+          <div id="coord-readout">LAT: 5.40°S | LON: 137.80°E</div>
+        </div>
+
+        <!-- Floating Terrain & InSight Weather Panel -->
+        <div class="telemetry-panel">
+          <div class="panel-section-title">TERRAIN • MOLA / HRSC DEM</div>
+          <div class="metric-row">
+            <span>Elevation</span>
+            <strong id="val-elevation">Fetching...</strong>
+          </div>
+          <div class="metric-row">
+            <span>Slope</span>
+            <strong id="val-slope">Fetching...</strong>
+          </div>
+          <div class="metric-row">
+            <span>Roughness</span>
+            <strong id="val-roughness">Fetching...</strong>
+          </div>
+          <div class="metric-row">
+            <span>Aspect</span>
+            <strong id="val-aspect">Fetching...</strong>
+          </div>
+
+          <div class="panel-divider"></div>
+
+          <div class="panel-section-title">ENVIRONMENT • NASA INSIGHT</div>
+          <div class="metric-row">
+            <span>Air Temp (AT)</span>
+            <strong id="val-temp">Fetching...</strong>
+          </div>
+          <div class="metric-row">
+            <span>Pressure (PRE)</span>
+            <strong id="val-pressure">Fetching...</strong>
+          </div>
+          <div class="metric-row">
+            <span>Wind Speed</span>
+            <strong id="val-wind">Fetching...</strong>
+          </div>
+        </div>
+
+        <!-- Floating Route Selection Drawer (Appears after route calculation) -->
+        <div id="route-drawer" class="route-drawer is-hidden">
+          <div class="drawer-header">
+            <span class="drawer-title">COMPUTED TRAVERSE OPTIONS</span>
+            <button id="btn-cancel-routing" class="btn-cancel">Exit</button>
+          </div>
+          <div class="route-cards">
+            <button class="route-card active" data-route="fastest">
+              <span class="indicator cyan"></span>
+              <div>
+                <strong>Route A: Fastest</strong>
+                <small id="stat-fastest">Direct • 12.4 km</small>
+              </div>
+            </button>
+            <button class="route-card" data-route="safest">
+              <span class="indicator emerald"></span>
+              <div>
+                <strong>Route B: Safest</strong>
+                <small id="stat-safest">Low Slope • 16.8 km</small>
+              </div>
+            </button>
+            <button class="route-card" data-route="optimum">
+              <span class="indicator amber"></span>
+              <div>
+                <strong>Route C: Optimum</strong>
+                <small id="stat-optimum">Balanced • 14.1 km</small>
+              </div>
+            </button>
+          </div>
+        </div>
+
+        <!-- Floating Waypoint Inspection Card -->
+        <div id="waypoint-card" class="waypoint-card is-hidden">
+          <div class="wp-header">
+            <span id="wp-title">Waypoint Node #1</span>
+            <button id="wp-close">&times;</button>
+          </div>
+          <div class="metric-row">
+            <span>Elevation</span>
+            <strong id="wp-elevation">-- m</strong>
+          </div>
+          <div class="metric-row">
+            <span>Slope Incline</span>
+            <strong id="wp-slope">--°</strong>
+          </div>
+          <div class="metric-row">
+            <span>Roughness</span>
+            <strong id="wp-roughness">-- m</strong>
+          </div>
+          <div class="metric-row">
+            <span>Aspect</span>
+            <strong id="wp-aspect">--</strong>
+          </div>
+        </div>
+
+        <!-- 2D Leaflet Panning Map -->
+        <div id="mars-2d-map"></div>
+
+        <!-- Bottom Menu-Driven Route Planning Button & Layer Bar -->
+        <div class="hud-bottom">
+          <button id="btn-toggle-routing" class="btn-route-menu">
+            📍 PLAN ROUTE (OFF)
+          </button>
+          <div class="controls-row">
+            <select id="layer-select">
+              <option value="CTX_WARM">MRO CTX 5m/px (Warm Tone)</option>
+              <option value="CTX_RAW">MRO CTX 5m/px (Raw Grayscale)</option>
+              <option value="THEMIS_IR">NASA THEMIS IR (100m)</option>
+              <option value="MOLA_CLR">MOLA Color Hillshade</option>
+              <option value="VIKING">Viking Global Color</option>
+            </select>
+            <button id="zoom-out">−</button>
+            <span id="zoom-label">Z: 8</span>
+            <button id="zoom-in">+</button>
+          </div>
+        </div>
       </div>
-      <div class="map-loading" id="map-loading" role="status">
-        <span class="loading-spinner" aria-hidden="true"></span>
-        <span id="map-loading-text">Loading Jezero map layers…</span>
-      </div>
-      <div class="map-credit" id="map-credit">MARS 2000 · FINAL JEZERO MOSAIC · TERRAIN: 20 M SOURCE DATA</div>
-    </main>
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="./js/script.js"></script>
+    </div>
+
+    <script type="module" src="./js/map.js"></script>
   </body>
 </html>
