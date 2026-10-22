@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Mars 3D & 2D Mission Explorer with Menu-Driven Routing</title>
+    <title>MarsWalk — Mars Surface Data Explorer</title>
 
     <!-- Leaflet CSS for 2D Panning Map -->
     <link
@@ -67,122 +67,46 @@
         </div>
       </div>
 
-      <!-- Right Box: 2D Panning Map, Telemetry & Menu-Driven Route Planner -->
+      <!-- Right Box: 2D Panning Map and coordinate data explorer -->
       <div class="box" id="mars-2d-box">
         <!-- Top HUD Header -->
         <div class="hud-top">
-          <div class="hud-subtitle">MARS SURFACE ATLAS · TELEMETRY</div>
+          <div class="hud-subtitle">MARS SURFACE ATLAS · DATA EXPLORER</div>
           <div id="region-title">Gale Crater — Curiosity Landing Site</div>
           <div id="coord-readout">LAT: 5.40°S | LON: 137.80°E</div>
         </div>
 
-        <!-- Floating Terrain & InSight Weather Panel -->
+        <!-- Coordinate values are populated only from real samples or derived data. -->
         <div class="telemetry-panel">
-          <div class="panel-section-title">TERRAIN • MOLA / HRSC DEM</div>
-          <div class="metric-row">
-            <span>Elevation</span>
-            <strong id="val-elevation">Fetching...</strong>
+          <div class="panel-heading">
+            <div>
+              <div class="panel-section-title">SELECTED COORDINATE</div>
+              <strong id="point-status" class="point-status">Choose a point on the map</strong>
+            </div>
+            <button id="point-panel-toggle" class="panel-toggle" type="button" aria-expanded="true" aria-controls="point-data">−</button>
           </div>
-          <div class="metric-row">
-            <span>Slope</span>
-            <strong id="val-slope">Fetching...</strong>
-          </div>
-          <div class="metric-row">
-            <span>Roughness</span>
-            <strong id="val-roughness">Fetching...</strong>
-          </div>
-          <div class="metric-row">
-            <span>Aspect</span>
-            <strong id="val-aspect">Fetching...</strong>
-          </div>
-
-          <div class="panel-divider"></div>
-
-          <div class="panel-section-title">ENVIRONMENT • NASA INSIGHT</div>
-          <div class="metric-row">
-            <span>Air Temp (AT)</span>
-            <strong id="val-temp">Fetching...</strong>
-          </div>
-          <div class="metric-row">
-            <span>Pressure (PRE)</span>
-            <strong id="val-pressure">Fetching...</strong>
-          </div>
-          <div class="metric-row">
-            <span>Wind Speed</span>
-            <strong id="val-wind">Fetching...</strong>
-          </div>
-        </div>
-
-        <!-- Floating Route Selection Drawer (Appears after route calculation) -->
-        <div id="route-drawer" class="route-drawer is-hidden">
-          <div class="drawer-header">
-            <span class="drawer-title">COMPUTED TRAVERSE OPTIONS</span>
-            <button id="btn-cancel-routing" class="btn-cancel">Exit</button>
-          </div>
-          <div class="route-cards">
-            <button class="route-card active" data-route="fastest">
-              <span class="indicator cyan"></span>
-              <div>
-                <strong>Route A: Fastest</strong>
-                <small id="stat-fastest">Direct • 12.4 km</small>
-              </div>
-            </button>
-            <button class="route-card" data-route="safest">
-              <span class="indicator emerald"></span>
-              <div>
-                <strong>Route B: Safest</strong>
-                <small id="stat-safest">Low Slope • 16.8 km</small>
-              </div>
-            </button>
-            <button class="route-card" data-route="optimum">
-              <span class="indicator amber"></span>
-              <div>
-                <strong>Route C: Optimum</strong>
-                <small id="stat-optimum">Balanced • 14.1 km</small>
-              </div>
-            </button>
-          </div>
-        </div>
-
-        <!-- Floating Waypoint Inspection Card -->
-        <div id="waypoint-card" class="waypoint-card is-hidden">
-          <div class="wp-header">
-            <span id="wp-title">Waypoint Node #1</span>
-            <button id="wp-close">&times;</button>
-          </div>
-          <div class="metric-row">
-            <span>Elevation</span>
-            <strong id="wp-elevation">-- m</strong>
-          </div>
-          <div class="metric-row">
-            <span>Slope Incline</span>
-            <strong id="wp-slope">--°</strong>
-          </div>
-          <div class="metric-row">
-            <span>Roughness</span>
-            <strong id="wp-roughness">-- m</strong>
-          </div>
-          <div class="metric-row">
-            <span>Aspect</span>
-            <strong id="wp-aspect">--</strong>
+          <div id="point-data" class="point-data">
+            <p class="data-hint">Click the map or a region on the globe to inspect available data.</p>
           </div>
         </div>
 
         <!-- 2D Leaflet Panning Map -->
         <div id="mars-2d-map"></div>
 
-        <!-- Bottom Menu-Driven Route Planning Button & Layer Bar -->
+        <!-- Basemap display controls -->
         <div class="hud-bottom">
-          <button id="btn-toggle-routing" class="btn-route-menu">
-            📍 PLAN ROUTE (OFF)
-          </button>
+          <span class="map-hint">Click anywhere to query the selected coordinate</span>
           <div class="controls-row">
             <select id="layer-select">
-              <option value="CTX_WARM">MRO CTX 5m/px (Warm Tone)</option>
-              <option value="CTX_RAW">MRO CTX 5m/px (Raw Grayscale)</option>
-              <option value="THEMIS_IR">NASA THEMIS IR (100m)</option>
-              <option value="MOLA_CLR">MOLA Color Hillshade</option>
-              <option value="VIKING">Viking Global Color</option>
+              <option value="CTX_WARM">CTX image · warm display</option>
+              <option value="CTX_RAW">CTX image · raw display</option>
+              <option value="THEMIS_IR">THEMIS day infrared · image</option>
+              <option value="MOLA_CLR">MOLA color hillshade · image</option>
+              <option value="TES_THERMAL">TES thermal inertia · map overlay</option>
+              <option value="TES_DUST">TES dust cover index · map overlay</option>
+              <option value="TES_CLAY">TES sheet silicates · map overlay</option>
+              <option value="MOLA_ROUGHNESS">MOLA roughness · map overlay</option>
+              <option value="VIKING">Viking global mosaic · image</option>
             </select>
             <button id="zoom-out">−</button>
             <span id="zoom-label">Z: 8</span>

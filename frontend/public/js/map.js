@@ -9,30 +9,11 @@ const regionListContainer = document.querySelector("#region-list-container");
 
 const regionTitleEl = document.querySelector("#region-title");
 const coordReadoutEl = document.querySelector("#coord-readout");
-const routeDrawer = document.querySelector("#route-drawer");
-const waypointCard = document.querySelector("#waypoint-card");
-const wpTitleEl = document.querySelector("#wp-title");
-const wpElevationEl = document.querySelector("#wp-elevation");
-const wpSlopeEl = document.querySelector("#wp-slope");
-const wpRoughnessEl = document.querySelector("#wp-roughness");
-const wpAspectEl = document.querySelector("#wp-aspect");
-
-const statFastest = document.querySelector("#stat-fastest");
-const statSafest = document.querySelector("#stat-safest");
-const statOptimum = document.querySelector("#stat-optimum");
-
-const btnToggleRouting = document.querySelector("#btn-toggle-routing");
+const pointStatusEl = document.querySelector("#point-status");
+const pointDataEl = document.querySelector("#point-data");
+const pointPanelToggle = document.querySelector("#point-panel-toggle");
 const layerSelectEl = document.querySelector("#layer-select");
 const zoomLabelEl = document.querySelector("#zoom-label");
-
-// Telemetry DOM Elements
-const valElevation = document.querySelector("#val-elevation");
-const valSlope = document.querySelector("#val-slope");
-const valRoughness = document.querySelector("#val-roughness");
-const valAspect = document.querySelector("#val-aspect");
-const valTemp = document.querySelector("#val-temp");
-const valPressure = document.querySelector("#val-pressure");
-const valWind = document.querySelector("#val-wind");
 
 const LON_OFFSET = -90;
 const GLOBE_RADIUS = 1.275;
@@ -159,6 +140,24 @@ function setMapLayer(layerType) {
         { maxNativeZoom: 6, maxZoom: 13 },
       ),
     );
+  } else if (["TES_THERMAL", "TES_DUST", "TES_CLAY", "MOLA_ROUGHNESS"].includes(layerType)) {
+    const layerIds = {
+      TES_THERMAL: "TES_Thermal_Inertia",
+      TES_DUST: "tes_ruffdust",
+      TES_CLAY: "TES_Glass_Clay",
+      MOLA_ROUGHNESS: "mola_roughness",
+    };
+    const productLayer = layerIds[layerType];
+    activeTileLayers.push(
+      L.tileLayer(
+        "https://astro.arcgis.com/arcgis/rest/services/OnMars/MDIM/MapServer/tile/{z}/{y}/{x}",
+        { maxNativeZoom: 9, maxZoom: 13 },
+      ),
+      L.tileLayer(
+        `https://trek.nasa.gov/tiles/Mars/EQ/${productLayer}/1.0.0/default/default028mm/{z}/{y}/{x}.png`,
+        { maxNativeZoom: 8, maxZoom: 13, opacity: 0.78 },
+      ),
+    );
   } else {
     activeTileLayers.push(
       L.tileLayer(
@@ -173,268 +172,162 @@ function setMapLayer(layerType) {
 
 setMapLayer(currentState.layer);
 
-const routeLayerGroup = L.layerGroup().addTo(mars2DMap);
-const startPinMarker = L.circleMarker([0, 0], {
+const selectedPointMarker = L.circleMarker([0, 0], {
   radius: 7,
   color: "#fff",
   weight: 2,
-  fillColor: "#00e5ff",
+  fillColor: "#ff9d42",
   fillOpacity: 1,
-});
-const endPinMarker = L.circleMarker([0, 0], {
-  radius: 7,
-  color: "#fff",
-  weight: 2,
-  fillColor: "#ff3d00",
-  fillOpacity: 1,
-});
+  className: "selected-point-marker",
+}).addTo(mars2DMap);
 
 // =========================================================================
-// 3. TELEMETRY & ELEVATION API (OPTION 2 BACKGROUND MATH)
+// 3. COORDINATE DATA LOOKUP
 // =========================================================================
-async function queryElevation(lat, lon) {
-  try {
-    const url = `https://astro.arcgis.com/arcgis/rest/services/OnMars/MDEM200M/ImageServer/identify?geometry=${encodeURIComponent(
-      JSON.stringify({ x: lon, y: lat }),
-    )}&geometryType=esriGeometryPoint&returnGeometry=false&f=json`;
-    const res = await fetch(url);
-    const data = await res.json();
-    if (data && data.value !== undefined && data.value !== "NoData") {
-      return parseFloat(data.value);
-    }
-  } catch (_) {}
-  return -2000 + Math.sin(lat * 0.1) * 1500;
+const GROUP_ORDER = [
+  "Terrain",
+  "Surface properties",
+  "Geology & science",
+  "Environment",
+  "Radiation",
+  "Image interpretation",
+  "Derived context",
+];
+
+function formatCoordinate(lat, lon) {
+  return `LAT ${Math.abs(lat).toFixed(4)}°${lat >= 0 ? "N" : "S"} · LON ${Math.abs(lon).toFixed(4)}°${lon >= 0 ? "E" : "W"}`;
 }
 
-async function updatePointTelemetry(lat, lon, titleText) {
-  const reqId = ++currentState.reqId;
-  currentState.lat = lat;
-  currentState.lon = lon;
-
-  regionTitleEl.textContent = titleText;
-  coordReadoutEl.textContent = `LAT: ${Math.abs(lat).toFixed(2)}°${lat >= 0 ? "N" : "S"} | LON: ${Math.abs(lon).toFixed(2)}°${lon >= 0 ? "E" : "W"}`;
-
-  valElevation.textContent = "Loading...";
-  valSlope.textContent = "...";
-  valRoughness.textContent = "...";
-  valAspect.textContent = "...";
-
-  // 5-point DEM stencil for Slope, Roughness, Aspect
-  const step = 0.01;
-  let zC, zN, zS, zE, zW;
-  try {
-    [zC, zN, zS, zE, zW] = await Promise.all([
-      queryElevation(lat, lon),
-      queryElevation(Math.min(89.9, lat + step), lon),
-      queryElevation(Math.max(-89.9, lat - step), lon),
-      queryElevation(lat, lon + step),
-      queryElevation(lat, lon - step),
-    ]);
-  } catch (_) {
-    zC = -1500;
-    zN = -1480;
-    zS = -1520;
-    zE = -1490;
-    zW = -1510;
-  }
-
-  if (reqId !== currentState.reqId) return;
-
-  const dy = step * 59245;
-  const dx = Math.max(
-    100,
-    step * 59245 * Math.cos(THREE.MathUtils.degToRad(lat)),
-  );
-  const dzdx = (zE - zW) / (2 * dx);
-  const dzdy = (zN - zS) / (2 * dy);
-
-  const slopeDeg = THREE.MathUtils.radToDeg(
-    Math.atan(Math.sqrt(dzdx * dzdx + dzdy * dzdy)),
-  );
-  let aspectDeg = THREE.MathUtils.radToDeg(Math.atan2(dzdx, -dzdy));
-  if (aspectDeg < 0) aspectDeg += 360;
-  const roughness = Math.sqrt(
-    ((zN - zC) ** 2 + (zS - zC) ** 2 + (zE - zC) ** 2 + (zW - zC) ** 2) / 4,
-  );
-
-  valElevation.textContent = `${Math.round(zC).toLocaleString()} m`;
-  valSlope.textContent = `${slopeDeg.toFixed(2)}°`;
-  valRoughness.textContent = `${roughness.toFixed(1)} m`;
-  valAspect.textContent = `${Math.round(aspectDeg)}°`;
-
-  const latRad = THREE.MathUtils.degToRad(lat);
-  valTemp.textContent = `${(-63 - (1 - Math.cos(latRad)) * 30 - (zC + 2600) * 0.0018).toFixed(1)} °C`;
-  valPressure.textContent = `${(610 * Math.exp(-zC / 11100)).toFixed(0)} Pa`;
-  valWind.textContent = `${(4.8 + Math.abs(Math.sin(latRad * 2)) * 3).toFixed(1)} m/s`;
+function statusLabel(status) {
+  return ({
+    available: "AVAILABLE",
+    partial: "PARTIAL",
+    unavailable: "UNAVAILABLE",
+    "no-data": "NO SAMPLE",
+    "map-only": "MAP OVERLAY",
+    "not-configured": "NOT CONNECTED",
+    "dataset-only": "DATASET ONLY",
+  })[status] || String(status || "UNKNOWN").toUpperCase();
 }
 
-// =========================================================================
-// 4. MENU-DRIVEN ROUTING STATE MACHINE
-// =========================================================================
-let isRoutingMode = false;
-let routeStep = "IDLE"; // "PICK_START" -> "PICK_END" -> "DONE"
-let routeStart = null;
-let routeEnd = null;
-let currentRouteData = null;
+function createDataRow(layer) {
+  const row = document.createElement("article");
+  row.className = `data-row data-${layer.status}`;
 
-btnToggleRouting.addEventListener("click", () => {
-  isRoutingMode = !isRoutingMode;
-  if (isRoutingMode) {
-    btnToggleRouting.classList.add("active");
-    btnToggleRouting.textContent = "📍 CLICK START POINT";
-    routeStep = "PICK_START";
-    coordReadoutEl.textContent = "MODE: Click Start Node on Map or Globe";
-  } else {
-    resetRoutingState();
-  }
-});
+  const header = document.createElement("div");
+  header.className = "data-row-header";
+  const name = document.createElement("strong");
+  name.textContent = layer.name;
+  const badge = document.createElement("span");
+  badge.className = `data-badge badge-${layer.status}`;
+  badge.textContent = statusLabel(layer.status);
+  header.append(name, badge);
 
-document
-  .querySelector("#btn-cancel-routing")
-  .addEventListener("click", resetRoutingState);
+  const value = document.createElement("div");
+  value.className = "data-value";
+  value.textContent = Number.isFinite(layer.value)
+    ? `${layer.value.toFixed(layer.units === "m" ? 1 : 2)} ${layer.units || ""}`.trim()
+    : typeof layer.value === "string" && layer.value.length
+      ? layer.value
+      : layer.message;
 
-function resetRoutingState() {
-  isRoutingMode = false;
-  routeStep = "IDLE";
-  routeStart = null;
-  routeEnd = null;
-  btnToggleRouting.classList.remove("active");
-  btnToggleRouting.textContent = "📍 PLAN ROUTE (OFF)";
-  routeDrawer.classList.add("is-hidden");
-  waypointCard.classList.add("is-hidden");
-  routeLayerGroup.clearLayers();
-  coordReadoutEl.textContent = `LAT: ${Math.abs(currentState.lat).toFixed(2)}°S | LON: ${Math.abs(currentState.lon).toFixed(2)}°E`;
+  const source = document.createElement("div");
+  source.className = "data-source";
+  source.textContent = `${layer.kind || "dataset"} · ${layer.source || "Source not provided"}`;
+
+  const resolution = document.createElement("div");
+  resolution.className = "data-resolution";
+  resolution.textContent = layer.nominalResolution || layer.message || "Coverage/resolution metadata unavailable.";
+
+  row.append(header, value, source, resolution);
+  return row;
 }
 
-async function handleMapLocationSelection(lat, lon, name) {
-  if (!isRoutingMode) {
-    // Normal exploration mode
-    mars2DMap.flyTo([lat, lon], currentState.zoom, { duration: 1.2 });
-    updatePointTelemetry(lat, lon, name);
+function renderPointData(payload) {
+  pointDataEl.replaceChildren();
+  if (!Array.isArray(payload.layers) || payload.layers.length === 0) {
+    pointDataEl.textContent = "No layer records were returned for this coordinate.";
     return;
   }
 
-  // Menu-driven routing mode
-  if (routeStep === "PICK_START") {
-    routeStart = { lat, lon, name };
-    routeStep = "PICK_END";
-    btnToggleRouting.textContent = "📍 CLICK END POINT";
-    coordReadoutEl.textContent = `Start set: ${name}. Now click Destination.`;
-    startPinMarker.setLatLng([lat, lon]).addTo(routeLayerGroup);
-  } else if (routeStep === "PICK_END") {
-    routeEnd = { lat, lon, name };
-    routeStep = "DONE";
-    btnToggleRouting.textContent = "📍 ROUTE ACTIVE";
-    coordReadoutEl.textContent = `Computing 3 Traverse Options...`;
-    endPinMarker.setLatLng([lat, lon]).addTo(routeLayerGroup);
+  const groups = new Map();
+  payload.layers.forEach((layer) => {
+    if (!groups.has(layer.group)) groups.set(layer.group, []);
+    groups.get(layer.group).push(layer);
+  });
 
-    await computeThreeRoutes(routeStart, routeEnd);
+  GROUP_ORDER.forEach((groupName) => {
+    const layers = groups.get(groupName);
+    if (!layers?.length) return;
+    const section = document.createElement("section");
+    section.className = "data-group";
+    const title = document.createElement("h3");
+    title.textContent = groupName;
+    section.append(title);
+    layers.forEach((layer) => section.append(createDataRow(layer)));
+    pointDataEl.append(section);
+  });
+
+  const note = document.createElement("p");
+  note.className = "coverage-note";
+  note.textContent = payload.coverageNote || "Source coverage and resolution vary by layer.";
+  pointDataEl.append(note);
+}
+
+async function updatePointData(lat, lon, titleText, options = {}) {
+  const reqId = ++currentState.reqId;
+  currentState.lat = lat;
+  currentState.lon = lon;
+  regionTitleEl.textContent = titleText;
+  coordReadoutEl.textContent = formatCoordinate(lat, lon);
+  selectedPointMarker.setLatLng([lat, lon]);
+  if (options.flyTo) mars2DMap.flyTo([lat, lon], currentState.zoom, { duration: 1.1 });
+  pointStatusEl.textContent = "Loading point datasets…";
+  pointDataEl.replaceChildren();
+  const loading = document.createElement("p");
+  loading.className = "data-hint";
+  loading.textContent = "Querying terrain, mapped geology, derived sunlight, and nearby station reports.";
+  pointDataEl.append(loading);
+
+  try {
+    const response = await fetch(`/api/point?lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lon)}`, {
+      headers: { Accept: "application/json" },
+    });
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.error || `Point query failed (${response.status})`);
+    if (reqId !== currentState.reqId) return;
+    pointStatusEl.textContent = payload.resultStatus === "available"
+      ? "Point data loaded"
+      : payload.resultStatus === "partial"
+        ? "Partial data returned"
+        : "Point data unavailable";
+    renderPointData(payload);
+  } catch (error) {
+    if (reqId !== currentState.reqId) return;
+    pointStatusEl.textContent = "Point query failed";
+    pointDataEl.replaceChildren();
+    const message = document.createElement("p");
+    message.className = "data-error";
+    message.textContent = `${error.message}. No estimated values were substituted.`;
+    pointDataEl.append(message);
   }
 }
 
-async function computeThreeRoutes(start, end) {
-  const steps = 14;
-  const rawWp = [];
-  for (let i = 0; i <= steps; i++) {
-    const f = i / steps;
-    const lat = start.lat + (end.lat - start.lat) * f;
-    const lon = start.lon + (end.lon - start.lon) * f;
-    const elev = await queryElevation(lat, lon);
-    rawWp.push({ lat, lon, elev });
-  }
-
-  const fastestPath = rawWp.map((w) => [w.lat, w.lon]);
-  const safestPath = rawWp.map((w, i) => [
-    w.lat - Math.sin((i / steps) * Math.PI) * 0.4,
-    w.lon,
-  ]);
-  const optimumPath = rawWp.map((w, i) => [
-    w.lat - Math.sin((i / steps) * Math.PI) * 0.2,
-    w.lon,
-  ]);
-
-  currentRouteData = {
-    fastest: { path: fastestPath, raw: rawWp, dist: "12.4 km" },
-    safest: {
-      path: safestPath,
-      raw: rawWp.map((w, i) => ({ ...w, lat: safestPath[i][0] })),
-      dist: "16.8 km",
-    },
-    optimum: {
-      path: optimumPath,
-      raw: rawWp.map((w, i) => ({ ...w, lat: optimumPath[i][0] })),
-      dist: "14.1 km",
-    },
-  };
-
-  statFastest.textContent = `Direct • ${currentRouteData.fastest.dist}`;
-  statSafest.textContent = `Low Slope • ${currentRouteData.safest.dist}`;
-  statOptimum.textContent = `Balanced • ${currentRouteData.optimum.dist}`;
-
-  drawSelectedRoute("fastest");
-  routeDrawer.classList.remove("is-hidden");
-  coordReadoutEl.textContent =
-    "Click any waypoint node on the path to inspect terrain.";
-  mars2DMap.fitBounds(L.latLngBounds(fastestPath), { padding: [40, 40] });
+function handleMapLocationSelection(lat, lon, name, options = {}) {
+  updatePointData(lat, lon, name, options);
 }
 
-function drawSelectedRoute(routeType) {
-  routeLayerGroup.clearLayers();
-  startPinMarker.addTo(routeLayerGroup);
-  endPinMarker.addTo(routeLayerGroup);
-
-  const colors = { fastest: "#00e5ff", safest: "#00e676", optimum: "#ffab00" };
-
-  Object.keys(currentRouteData).forEach((type) => {
-    const data = currentRouteData[type];
-    const isSel = type === routeType;
-
-    const polyline = L.polyline(data.path, {
-      color: colors[type],
-      weight: isSel ? 5 : 3,
-      opacity: isSel ? 1 : 0.4,
-    }).addTo(routeLayerGroup);
-
-    if (isSel) {
-      data.raw.forEach((wp, idx) => {
-        const node = L.circleMarker([wp.lat, wp.lon], {
-          radius: 5,
-          color: "#fff",
-          weight: 1.5,
-          fillColor: colors[type],
-          fillOpacity: 1,
-        }).addTo(routeLayerGroup);
-
-        node.on("click", () => {
-          showWaypointPopup(idx + 1, wp);
-        });
-      });
-    }
-  });
-}
-
-function showWaypointPopup(num, wp) {
-  wpTitleEl.textContent = `Waypoint Node #${num}`;
-  wpElevationEl.textContent = `${Math.round(wp.elev).toLocaleString()} m`;
-  wpSlopeEl.textContent = `${(Math.abs(wp.lat * 10) % 15).toFixed(2)}°`;
-  wpRoughnessEl.textContent = `${(1.5 + (num % 3)).toFixed(1)} m`;
-  wpAspectEl.textContent = `${(num * 45) % 360}°`;
-  waypointCard.classList.remove("is-hidden");
-}
-
-document.querySelectorAll(".route-card").forEach((btn) => {
-  btn.addEventListener("click", () => {
-    document
-      .querySelectorAll(".route-card")
-      .forEach((b) => b.classList.remove("active"));
-    btn.classList.add("active");
-    drawSelectedRoute(btn.getAttribute("data-route"));
-  });
+mars2DMap.on("click", (event) => {
+  const { lat, lng } = event.latlng;
+  handleMapLocationSelection(lat, lng, "Selected Mars coordinate");
 });
 
-document
-  .querySelector("#wp-close")
-  .addEventListener("click", () => waypointCard.classList.add("is-hidden"));
+pointPanelToggle.addEventListener("click", () => {
+  const expanded = pointPanelToggle.getAttribute("aria-expanded") === "true";
+  pointPanelToggle.setAttribute("aria-expanded", String(!expanded));
+  pointPanelToggle.textContent = expanded ? "+" : "−";
+  pointDataEl.hidden = expanded;
+});
 
 // =========================================================================
 // 5. SIDEBAR REGION LIST POPULATION
@@ -450,7 +343,7 @@ MARS_REGIONS.forEach((reg) => {
     btn.classList.add("active");
     currentState.zoom = reg.zoom;
     zoomLabelEl.textContent = `Z: ${reg.zoom}`;
-    handleMapLocationSelection(reg.lat, reg.lon, reg.fullTitle);
+    handleMapLocationSelection(reg.lat, reg.lon, reg.fullTitle, { flyTo: true });
   });
   regionListContainer.appendChild(btn);
 });
@@ -503,7 +396,7 @@ MARS_REGIONS.forEach((reg) => {
   el.addEventListener("click", (e) => {
     e.stopPropagation();
     userInteracted = true;
-    handleMapLocationSelection(reg.lat, reg.lon, reg.fullTitle);
+    handleMapLocationSelection(reg.lat, reg.lon, reg.fullTitle, { flyTo: true });
   });
   labels3DLayer.appendChild(el);
   labelItems3D.push({ el, localPos: latLonToLocalVector3(reg.lat, reg.lon) });
@@ -575,6 +468,7 @@ canvas3D.addEventListener("pointerup", (e) => {
       lat,
       lon,
       `Sector ${lat.toFixed(1)}°, ${lon.toFixed(1)}°`,
+      { flyTo: true },
     );
   }
 });
@@ -629,8 +523,8 @@ document.querySelector("#zoom-out").addEventListener("click", () => {
   }
 });
 
-// Initial load telemetry for Gale Crater
-updatePointTelemetry(
+// Initial coordinate lookup for Gale Crater
+updatePointData(
   currentState.lat,
   currentState.lon,
   "Gale Crater — Curiosity Landing Site",

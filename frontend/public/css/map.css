@@ -223,140 +223,6 @@ body {
   margin: 4px 0;
 }
 
-/* Menu-Driven Route Drawer */
-.route-drawer {
-  position: absolute;
-  bottom: 56px;
-  left: 12px;
-  right: 12px;
-  z-index: 1000;
-  background: rgba(18, 10, 6, 0.95);
-  border: 1px solid rgba(217, 119, 54, 0.6);
-  border-radius: 8px;
-  padding: 10px 12px;
-  backdrop-filter: blur(8px);
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.route-drawer.is-hidden,
-.waypoint-card.is-hidden {
-  display: none !important;
-}
-
-.drawer-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.drawer-title {
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 1px;
-  color: #ff9d42;
-}
-
-.btn-cancel {
-  background: #381a0f;
-  color: #f5dec9;
-  border: 1px solid #8c4d2b;
-  border-radius: 4px;
-  padding: 2px 8px;
-  font-size: 10px;
-  cursor: pointer;
-}
-.btn-cancel:hover {
-  background: #522714;
-}
-
-.route-cards {
-  display: flex;
-  gap: 6px;
-}
-
-.route-card {
-  flex: 1;
-  background: #241109;
-  border: 1px solid #522714;
-  border-radius: 6px;
-  padding: 6px 8px;
-  color: #f5dec9;
-  text-align: left;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.route-card.active {
-  border-color: #ff9d42;
-  background: #3b1c0e;
-}
-
-.route-card .indicator {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-.route-card .indicator.cyan {
-  background: #00e5ff;
-}
-.route-card .indicator.emerald {
-  background: #00e676;
-}
-.route-card .indicator.amber {
-  background: #ffab00;
-}
-
-.route-card strong {
-  display: block;
-  font-size: 11px;
-}
-.route-card small {
-  font-size: 9px;
-  color: #b89f8a;
-}
-
-/* Waypoint Inspection Card */
-.waypoint-card {
-  position: absolute;
-  top: 140px;
-  right: 12px;
-  width: 210px;
-  z-index: 1000;
-  background: rgba(18, 10, 6, 0.94);
-  border: 1px solid rgba(217, 119, 54, 0.5);
-  border-radius: 8px;
-  padding: 10px 12px;
-  backdrop-filter: blur(6px);
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-}
-
-.wp-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 11px;
-  font-weight: 700;
-  color: #ffae70;
-  margin-bottom: 2px;
-  border-bottom: 1px solid rgba(217, 119, 54, 0.3);
-  padding-bottom: 4px;
-}
-
-#wp-close {
-  background: none;
-  border: none;
-  color: #f5dec9;
-  font-size: 14px;
-  cursor: pointer;
-}
-
 /* Bottom HUD Controls */
 .hud-bottom {
   position: absolute;
@@ -372,23 +238,6 @@ body {
   justify-content: space-between;
   align-items: center;
   backdrop-filter: blur(4px);
-}
-
-.btn-route-menu {
-  background: #381a0f;
-  color: #ff9d42;
-  border: 1px solid #ff9d42;
-  border-radius: 4px;
-  padding: 5px 10px;
-  font-size: 11px;
-  font-weight: 700;
-  cursor: pointer;
-  letter-spacing: 0.5px;
-}
-.btn-route-menu.active {
-  background: #ff5500;
-  color: #ffffff;
-  border-color: #ffffff;
 }
 
 .controls-row {
@@ -418,4 +267,225 @@ body {
   font-family: monospace;
   min-width: 28px;
   text-align: center;
+}
+
+/* Coordinate data panel */
+.container {
+  height: 100dvh;
+  min-height: 620px;
+  align-items: stretch;
+  padding: 12px;
+  gap: 12px;
+}
+
+.box {
+  height: auto;
+  min-width: 0;
+  border-radius: 10px;
+}
+
+#mars-3d-box {
+  flex: 0 0 34%;
+}
+
+#mars-2d-box {
+  flex: 1 1 0;
+}
+
+.telemetry-panel {
+  width: min(360px, 34vw);
+  max-height: calc(100% - 100px);
+  overflow: hidden;
+  padding: 12px;
+  gap: 10px;
+  display: flex;
+  flex-direction: column;
+}
+
+.panel-heading,
+.data-row-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.point-status {
+  display: block;
+  color: #fff3e6;
+  font-size: 12px;
+  margin-top: 3px;
+}
+
+.panel-toggle {
+  flex: 0 0 auto;
+  width: 25px;
+  height: 25px;
+  border-radius: 5px;
+  border: 1px solid rgba(217, 119, 54, 0.5);
+  background: #29150c;
+  color: #f5dec9;
+  cursor: pointer;
+}
+
+.point-data {
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: 62vh;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding-right: 3px;
+}
+
+.data-group + .data-group {
+  margin-top: 12px;
+}
+
+.data-group h3 {
+  margin: 0 0 6px;
+  color: #e68a49;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.data-row {
+  padding: 8px 0;
+  border-top: 1px solid rgba(217, 119, 54, 0.16);
+}
+
+.data-row-header strong {
+  font-size: 11px;
+  color: #f7e7d8;
+}
+
+.data-badge {
+  flex: 0 0 auto;
+  border-radius: 999px;
+  padding: 2px 5px;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #decbb9;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.badge-available {
+  color: #c4f0d0;
+  background: rgba(48, 132, 80, 0.25);
+}
+
+.badge-partial,
+.badge-no-data {
+  color: #ffe1a4;
+  background: rgba(174, 116, 32, 0.2);
+}
+
+.data-value {
+  margin-top: 4px;
+  color: #fff3e6;
+  font: 12px/1.4 ui-monospace, SFMono-Regular, Consolas, monospace;
+}
+
+.data-source,
+.data-resolution {
+  margin-top: 3px;
+  color: #bba28d;
+  font-size: 9px;
+  line-height: 1.4;
+}
+
+.data-hint,
+.coverage-note,
+.data-error {
+  color: #cbb29c;
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.coverage-note {
+  border-top: 1px solid rgba(217, 119, 54, 0.25);
+  padding-top: 8px;
+  margin-top: 10px;
+}
+
+.data-error {
+  color: #ffc2a6;
+}
+
+.map-hint {
+  color: #cbb29c;
+  font-size: 10px;
+}
+
+.selected-point-marker {
+  filter: drop-shadow(0 0 5px #ff9d42);
+}
+
+@media (max-width: 900px) {
+  .container {
+    flex-direction: column;
+    min-height: 100dvh;
+    height: auto;
+  }
+
+  #mars-3d-box {
+    flex: none;
+    height: min(36vh, 300px);
+  }
+
+  #mars-2d-box {
+    flex: none;
+    height: 64vh;
+    min-height: 480px;
+  }
+
+  .telemetry-panel {
+    width: min(360px, calc(100% - 24px));
+    max-height: calc(100% - 104px);
+  }
+}
+
+@media (max-width: 560px) {
+  .container {
+    padding: 6px;
+    gap: 6px;
+  }
+
+  #mars-3d-box {
+    height: 220px;
+  }
+
+  #mars-2d-box {
+    height: 70vh;
+    min-height: 500px;
+  }
+
+  .region-sidebar {
+    top: 8px;
+    left: 8px;
+    width: 130px;
+    max-height: 240px;
+  }
+
+  .hud-top {
+    left: 146px;
+    top: 8px;
+    max-width: calc(100% - 154px);
+  }
+
+  .hud-bottom {
+    left: 8px;
+    right: 8px;
+    bottom: 8px;
+    padding: 7px;
+  }
+
+  .map-hint {
+    display: none;
+  }
+
+  #layer-select {
+    max-width: 205px;
+  }
 }

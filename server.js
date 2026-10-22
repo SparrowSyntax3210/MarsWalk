@@ -1,5 +1,4 @@
 const http = require("http");
-const express = require("express");
 const app = require("./backend/src/app");
 
 const host = process.env.HOST || "127.0.0.1";
