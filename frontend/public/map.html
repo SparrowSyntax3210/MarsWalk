@@ -62,8 +62,35 @@
 
         <!-- Curated Region Selector Sidebar on Left Box -->
         <div class="region-sidebar">
-          <div class="sidebar-title">MAP REGIONS</div>
-          <div id="region-list-container"></div>
+          <div class="sidebar-title">LOCATION CATALOG</div>
+          <div class="location-count" id="location-count">
+            Loading gazetteer…
+          </div>
+          <div class="location-source">
+            Source:
+            <a
+              href="https://planetarynames.wr.usgs.gov/"
+              target="_blank"
+              rel="noreferrer"
+              >USGS / IAU</a
+            >
+          </div>
+          <input
+            id="location-search"
+            class="location-search"
+            type="search"
+            placeholder="Search all Mars locations"
+            aria-label="Search all Mars locations"
+            autocomplete="off"
+          />
+          <div
+            id="region-list-container"
+            class="location-list"
+            role="listbox"
+            aria-label="All named Mars locations"
+          >
+            <p class="location-empty">Loading locations…</p>
+          </div>
         </div>
       </div>
 
@@ -81,12 +108,24 @@
           <div class="panel-heading">
             <div>
               <div class="panel-section-title">SELECTED COORDINATE</div>
-              <strong id="point-status" class="point-status">Choose a point on the map</strong>
+              <strong id="point-status" class="point-status"
+                >Choose a point on the map</strong
+              >
             </div>
-            <button id="point-panel-toggle" class="panel-toggle" type="button" aria-expanded="true" aria-controls="point-data">−</button>
+            <button
+              id="point-panel-toggle"
+              class="panel-toggle"
+              type="button"
+              aria-expanded="true"
+              aria-controls="point-data"
+            >
+              −
+            </button>
           </div>
           <div id="point-data" class="point-data">
-            <p class="data-hint">Click the map or a region on the globe to inspect available data.</p>
+            <p class="data-hint">
+              Click the map or a region on the globe to inspect available data.
+            </p>
           </div>
         </div>
 
@@ -95,17 +134,36 @@
 
         <!-- Basemap display controls -->
         <div class="hud-bottom">
-          <span class="map-hint">Click anywhere to query the selected coordinate</span>
+          <span class="map-hint" id="route-hint"
+            >Global route planner · availability depends on completed Parquet
+            tiles.</span
+          >
           <div class="controls-row">
+            <button id="route-plan-button" type="button">
+              Plan Mars route
+            </button>
+            <select id="route-mode-select" aria-label="Route mode">
+              <option value="balanced">Balanced</option>
+              <option value="safest">Safest</option>
+              <option value="fastest">Fastest</option>
+            </select>
             <select id="layer-select">
               <option value="CTX_WARM">CTX image · warm display</option>
               <option value="CTX_RAW">CTX image · raw display</option>
               <option value="THEMIS_IR">THEMIS day infrared · image</option>
               <option value="MOLA_CLR">MOLA color hillshade · image</option>
-              <option value="TES_THERMAL">TES thermal inertia · map overlay</option>
-              <option value="TES_DUST">TES dust cover index · map overlay</option>
-              <option value="TES_CLAY">TES sheet silicates · map overlay</option>
-              <option value="MOLA_ROUGHNESS">MOLA roughness · map overlay</option>
+              <option value="TES_THERMAL">
+                TES thermal inertia · map overlay
+              </option>
+              <option value="TES_DUST">
+                TES dust cover index · map overlay
+              </option>
+              <option value="TES_CLAY">
+                TES sheet silicates · map overlay
+              </option>
+              <option value="MOLA_ROUGHNESS">
+                MOLA roughness · map overlay
+              </option>
               <option value="VIKING">Viking global mosaic · image</option>
             </select>
             <button id="zoom-out">−</button>

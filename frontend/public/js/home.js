@@ -6,13 +6,20 @@ const loadingNote = document.querySelector("#loading-note");
 const motionToggle = document.querySelector("#motion-toggle");
 const motionLabel = motionToggle.querySelector("span:last-child");
 const motionIcon = motionToggle.querySelector(".motion-icon");
-const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+const prefersReducedMotion = window.matchMedia(
+  "(prefers-reduced-motion: reduce)",
+);
 
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 100);
 camera.position.set(0, 0, 4.15);
 
-const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true, powerPreference: "high-performance" });
+const renderer = new THREE.WebGLRenderer({
+  canvas,
+  alpha: true,
+  antialias: true,
+  powerPreference: "high-performance",
+});
 renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.6));
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -65,7 +72,9 @@ function resizeScene() {
 function updateScrollState() {
   const travelDistance = Math.max(1, window.innerHeight * 0.82);
   scrollProgress = THREE.MathUtils.clamp(window.scrollY / travelDistance, 0, 1);
-  document.querySelector("#landing-screen").classList.toggle("is-revealed", scrollProgress > 0.2);
+  document
+    .querySelector("#landing-screen")
+    .classList.toggle("is-revealed", scrollProgress > 0.2);
 }
 
 window.addEventListener("resize", resizeScene);
@@ -98,7 +107,8 @@ loader.load(
   undefined,
   (error) => {
     console.error("Could not load the Mars GLB model.", error);
-    loadingNote.textContent = "3D model unavailable — check the model file path.";
+    loadingNote.textContent =
+      "3D model unavailable — check the model file path.";
     loadingNote.classList.add("is-error");
   },
 );
@@ -107,7 +117,10 @@ const clock = new THREE.Clock();
 function animate() {
   requestAnimationFrame(animate);
   const delta = clock.getDelta();
-  const targetY = -camera.position.z * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * scrollProgress;
+  const targetY =
+    -camera.position.z *
+    Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) *
+    scrollProgress;
   const slideEase = prefersReducedMotion.matches ? 1 : Math.min(1, delta * 5);
   planetSpin.position.y += (targetY - planetSpin.position.y) * slideEase;
 

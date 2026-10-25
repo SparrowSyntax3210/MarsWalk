@@ -49,11 +49,13 @@ body {
   position: absolute;
   top: 12px;
   left: 12px;
-  width: 170px;
-  max-height: 380px;
-  overflow-y: auto;
+  width: min(220px, 48%);
+  height: min(430px, calc(100% - 24px));
   z-index: 10;
-  background: rgba(18, 10, 6, 0.9);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: rgba(18, 10, 6, 0.92);
   border: 1px solid rgba(217, 119, 54, 0.45);
   border-radius: 8px;
   padding: 8px;
@@ -72,17 +74,63 @@ body {
 
 .region-item {
   display: block;
+  flex: 0 0 auto;
   width: 100%;
   background: #241109;
   border: 1px solid #522714;
   color: #f5dec9;
-  padding: 5px 8px;
-  margin-bottom: 4px;
+  padding: 5px 7px;
+  margin-bottom: 3px;
   border-radius: 4px;
-  font-size: 11px;
+  font-size: 10px;
+  line-height: 1.25;
   text-align: left;
+  overflow-wrap: anywhere;
   cursor: pointer;
-  transition: all 0.15s;
+  transition:
+    background-color 0.15s,
+    border-color 0.15s;
+}
+
+.location-search {
+  flex: 0 0 auto;
+  width: 100%;
+  margin: 3px 0 6px;
+  padding: 7px 8px;
+  border: 1px solid rgba(217, 119, 54, 0.42);
+  border-radius: 5px;
+  outline: none;
+  background: rgba(34, 18, 10, 0.96);
+  color: #fff4e8;
+  font:
+    10px system-ui,
+    sans-serif;
+}
+
+.location-search::placeholder {
+  color: #bba28d;
+}
+
+.location-search:focus {
+  border-color: #ff9d42;
+  box-shadow: 0 0 0 2px rgba(255, 157, 66, 0.12);
+}
+
+.location-list {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 2px 3px 0 0;
+  scrollbar-color: rgba(217, 119, 54, 0.55) rgba(30, 16, 10, 0.8);
+  scrollbar-width: thin;
+}
+
+.location-empty {
+  padding: 8px 4px;
+  color: #bba28d;
+  font-size: 10px;
+  line-height: 1.4;
 }
 
 .region-item:hover,
@@ -247,6 +295,7 @@ body {
 }
 
 #layer-select,
+#route-mode-select,
 .controls-row button {
   background: #29150c;
   color: #f5dec9;
@@ -384,7 +433,11 @@ body {
 .data-value {
   margin-top: 4px;
   color: #fff3e6;
-  font: 12px/1.4 ui-monospace, SFMono-Regular, Consolas, monospace;
+  font:
+    12px/1.4 ui-monospace,
+    SFMono-Regular,
+    Consolas,
+    monospace;
 }
 
 .data-source,
@@ -464,8 +517,8 @@ body {
   .region-sidebar {
     top: 8px;
     left: 8px;
-    width: 130px;
-    max-height: 240px;
+    width: min(175px, 52%);
+    height: min(240px, calc(100% - 16px));
   }
 
   .hud-top {
@@ -485,7 +538,114 @@ body {
     display: none;
   }
 
-  #layer-select {
+  #layer-select,
+  #route-mode-select {
     max-width: 205px;
   }
+}
+
+/* Route planner controls */
+.controls-row #route-plan-button {
+  width: auto;
+  min-width: 76px;
+  padding: 5px 8px;
+  background: #16413e;
+  border-color: #00a995;
+  color: #e8fffb;
+}
+#route-plan-button:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
+@media (max-width: 560px) {
+  .controls-row {
+    gap: 3px;
+  }
+}
+
+.location-count {
+  color: #f5dec9;
+  font-size: 9px;
+  line-height: 1.35;
+  margin: 3px 0 2px;
+}
+
+.location-source {
+  color: #bba28d;
+  font-size: 8px;
+  margin-bottom: 10px;
+}
+
+.location-source a {
+  color: #ffae70;
+  text-decoration: none;
+}
+
+.location-source a:hover {
+  text-decoration: underline;
+}
+
+.mission-sites-title {
+  margin-top: 3px;
+}
+
+.mars-3d-selected-label {
+  pointer-events: none;
+  z-index: 6;
+}
+
+.mars-3d-selected-label .dot {
+  width: 8px;
+  height: 8px;
+  background-color: #ff9d42;
+  box-shadow: 0 0 8px rgba(255, 157, 66, 0.85);
+}
+
+.mars-3d-selected-label .tag {
+  border-color: rgba(255, 157, 66, 0.8);
+  max-width: 230px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.leaflet-tooltip.mars-location-tooltip {
+  background: rgba(18, 10, 6, 0.94);
+  border: 1px solid rgba(217, 119, 54, 0.65);
+  border-radius: 4px;
+  color: #fff3e6;
+  font:
+    11px system-ui,
+    sans-serif;
+  padding: 4px 7px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+}
+
+.leaflet-tooltip.mars-location-tooltip::before {
+  border-top-color: rgba(217, 119, 54, 0.65);
+}
+
+.leaflet-tooltip.mars-location-name-label {
+  background: rgba(18, 10, 6, 0.84);
+  border: 1px solid rgba(217, 119, 54, 0.48);
+  border-radius: 3px;
+  color: #fff4e8;
+  font:
+    8px/1.1 system-ui,
+    sans-serif;
+  padding: 1px 3px;
+  white-space: nowrap;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.32);
+  pointer-events: none;
+}
+
+.leaflet-tooltip.mars-location-name-label::before {
+  border-right-color: rgba(217, 119, 54, 0.55);
+}
+
+.mars-3d-feature-names {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
 }
