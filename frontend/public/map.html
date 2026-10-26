@@ -61,10 +61,11 @@
         <nav class="primary-nav" aria-label="Workspace sections">
           <button class="nav-item is-active" type="button" data-view="explore" data-title="Explore Mars" data-copy="Browse the Martian surface, inspect map layers, and discover named locations." aria-current="page"><span class="nav-icon">⌖</span>Explore</button>
           <button class="nav-item" type="button" data-view="route" data-title="Route Planning" data-copy="Choose a route mode, then select start and destination points on the map." aria-current="false"><span class="nav-icon">⌁</span>Route Planning</button>
-          <button class="nav-item" type="button" data-view="mission" data-title="Mission Planner" data-copy="Prepare mission objectives and review the planning tools as they come online." aria-current="false"><span class="nav-icon">◈</span>Mission Planner</button>
+          <button class="nav-item" type="button" data-view="mission" data-title="Mission Planner" data-copy="Set rover and mission limits, compare route priorities, estimate resource budgets, and audit a custom traverse." aria-current="false"><span class="nav-icon">◈</span>Mission Planner</button>
           <button class="nav-item" type="button" data-view="ai-help" data-title="AI Help" data-copy="Get clear explanations of Mars terrain, route results, and mission data." aria-current="false"><span class="nav-icon">✧</span>AI Help</button>
           <button class="nav-item" type="button" data-view="ar-engine" data-title="3D / AR Engine" data-copy="Explore the Mars globe now; Unreal Engine, phone AR, and controller support are planned." aria-current="false"><span class="nav-icon">◉</span>3D / AR Engine</button>
         </nav>
+        <a class="review-link" href="./vision-review.html"><span class="review-link-icon">◎</span><span><strong>Jezero visual review</strong><small>Independently mark hazards</small></span></a>
         <div class="sidebar-bottom"><span class="status-dot"></span><span><strong>Mars surface workspace</strong><small>Explore · plan · visualize</small></span></div>
       </aside>
       <main class="app-main">
@@ -213,9 +214,38 @@
       </section>
       <section class="section-card mission-card" id="mission-panel" hidden>
         <div class="section-kicker">MISSION WORKSPACE</div><h2>Mission Planner</h2>
-        <p>Plan a traverse around the selected area. Mission constraints and resource estimates will be connected here as the planning workflow is implemented.</p>
-        <div class="planner-steps"><div><span>01</span><strong>Choose an area</strong><small>Inspect a landing or traverse region on the map.</small></div><div><span>02</span><strong>Set objectives</strong><small>Define a destination, route priorities, and mission limits.</small></div><div><span>03</span><strong>Review the plan</strong><small>Compare routes and available terrain data.</small></div></div>
-        <button type="button" class="card-action" data-open-view="route">Open route planning <span>↗</span></button>
+        <p>Set endpoints and rover limits. MarsWalk runs safest, balanced, and fastest terrain routes, then estimates schedule and resource budgets from the assumptions below.</p>
+        <div class="mission-endpoints">
+          <div class="mission-endpoint"><strong>START</strong><div class="coordinate-inputs"><label>Latitude °<input id="mission-start-lat" type="number" min="-90" max="90" step="0.0001" placeholder="-5.40"></label><label>Longitude °<input id="mission-start-lon" type="number" min="-180" max="180" step="0.0001" placeholder="137.80"></label></div><button class="endpoint-pick" type="button" data-route-pick="start">Pick start on map</button></div>
+          <div class="mission-endpoint"><strong>DESTINATION</strong><div class="coordinate-inputs"><label>Latitude °<input id="mission-end-lat" type="number" min="-90" max="90" step="0.0001" placeholder="18.44"></label><label>Longitude °<input id="mission-end-lon" type="number" min="-180" max="180" step="0.0001" placeholder="77.45"></label></div><button class="endpoint-pick" type="button" data-route-pick="end">Pick destination on map</button></div>
+        </div>
+        <div class="mission-form-grid">
+          <label>Vehicle profile<select id="mission-profile"><option value="robotic">Robotic rover</option><option value="crewed">Crewed rover (planning proxy)</option></select></label>
+          <label>Route priority<select id="mission-priority"><option value="balanced">Balanced</option><option value="safest">Safest</option><option value="fastest">Fastest</option></select></label>
+          <label>Maximum slope °<input id="mission-max-slope" type="number" min="1" max="45" step="0.5" value="20"></label>
+          <label>Mission time limit (sols)<input id="mission-max-sols" type="number" min="0.1" max="1000" step="0.1" value="30"></label>
+          <label>Maximum traverse distance (km)<input id="mission-max-distance" type="number" min="0.1" max="100000" step="1" value="100"></label>
+          <label>Average driving speed (km/h)<input id="mission-speed" type="number" min="0.01" max="20" step="0.01" value="0.15"></label>
+          <label>Driving hours per sol<input id="mission-driving-hours" type="number" min="0.1" max="24" step="0.5" value="4"></label>
+          <label>Usable energy budget (kWh)<input id="mission-energy-budget" type="number" min="0" step="0.1" value="100"></label>
+          <label>Energy use (kWh/km)<input id="mission-energy-rate" type="number" min="0" step="0.01" value="1"></label>
+          <label>Energy reserve (%)<input id="mission-energy-reserve" type="number" min="0" max="95" step="1" value="20"></label>
+          <label>Roughness review limit (m RMS)<input id="mission-roughness-limit" type="number" min="0" step="0.1" value="5"></label>
+          <label class="crew-only" hidden>Crew size<input id="mission-crew-size" type="number" min="1" max="20" step="1" value="2"></label>
+          <label class="crew-only" hidden>O₂ supply (kg)<input id="mission-oxygen-budget" type="number" min="0" step="0.1" value="100"></label>
+          <label class="crew-only" hidden>O₂ assumption (kg/person/sol)<input id="mission-oxygen-rate" type="number" min="0" step="0.01" value="0.84"></label>
+        </div>
+        <label class="mission-vision-toggle"><input id="mission-use-vision" type="checkbox"><span><strong>Include experimental Jezero vision cost</strong><small>Optional, soft cost only; weak-label model, not a validated hazard map.</small></span></label>
+        <div class="mission-actions"><button id="mission-plan-button" class="card-action" type="button">Compare routes & plan mission</button><button id="mission-clear-button" class="global-map-button" type="button">Clear endpoints and results</button></div>
+        <div id="mission-status" class="mission-status" role="status" aria-live="polite">Choose a start and destination on the map or enter coordinates.</div>
+        <section id="mission-results" class="mission-results" hidden aria-live="polite">
+          <div class="mission-result-heading"><div><div class="section-kicker">ROUTE OPTIONS</div><h3>Mission feasibility</h3></div><div class="mission-report-actions"><button id="mission-download-report" type="button" disabled>Download JSON</button><button id="mission-print-report" type="button">Print</button></div></div>
+          <div id="mission-option-list" class="mission-option-list"></div>
+          <div id="mission-selected-summary" class="mission-selected-summary"></div>
+          <div id="mission-warnings" class="mission-warnings"></div>
+          <div class="mission-method-note"><strong>What these numbers mean</strong><p>Route shape, terrain metrics, and route-cell classes come from the A* terrain planner. Time = distance ÷ entered average speed ÷ entered drive hours per sol. Energy = distance × entered energy use per km. Crew oxygen uses the editable per-person-per-sol assumption. These are planning estimates, not rover telemetry or certified life-support predictions. Radiation, slip, power variation, and detailed day/night operations are not modeled.</p></div>
+        </section>
+        <details class="mission-audit"><summary>Audit a custom traverse</summary><p>Paste a GeoJSON LineString or a list of [longitude, latitude] points. We sample up to 20 points from the global MDEM point service, then report sampled slope and local elevation variation. This is a coarse screening aid, not a high-resolution DTM hazard audit.</p><textarea id="mission-custom-route" rows="4" placeholder='{"type":"LineString","coordinates":[[137.80,-5.40],[137.90,-5.35]]}'></textarea><button id="mission-audit-button" class="card-action" type="button">Audit custom traverse</button><div id="mission-audit-result" class="mission-audit-result" role="status"></div></details>
       </section>
       <section class="section-card assistant-card" id="assistant-panel" hidden>
         <div class="assistant-symbol">✧</div><div class="section-kicker">MARSWALK ASSISTANT</div><h2>AI Help</h2>
@@ -225,9 +255,10 @@
       </section>
       <section class="section-card ar-card" id="ar-panel" hidden>
         <div class="section-kicker">3D / AR ENGINE</div><h2>Mars in 3D</h2>
-        <p>Explore the interactive Mars globe. Unreal Engine, phone AR, and controller support are planned for a later build.</p>
-        <div class="engine-preview"><div class="engine-orbit"><span></span></div><div><strong>Interactive globe</strong><small>Available now · drag to rotate</small></div></div>
-        <div class="engine-roadmap"><span>PLANNED</span><p>Unreal Engine scene</p><p>Phone AR viewing</p><p>Controller input</p></div>
+        <p>Try a lightweight phone head-tracking demo before we build the Unreal Mars scene. Put your phone in a viewer, turn your head, and check that the camera follows.</p>
+        <div class="engine-preview"><div class="engine-orbit"><span></span></div><div><strong>Phone VR tracking test</strong><small>Basic Mars-like 360° scene · no real Mars data yet</small></div></div>
+        <a class="card-action vr-test-link" href="./vr-test.html">Open phone head-tracking test <span>↗</span></a>
+        <div class="engine-roadmap"><span>AFTER TRACKING WORKS</span><p>Replace test landscape with Mars terrain</p><p>Connect route and hazard overlays</p><p>Add rover controller and mission HUD</p></div>
         <button type="button" class="card-action" data-open-view="explore">Back to surface explorer <span>↗</span></button>
       </section>
         </div>

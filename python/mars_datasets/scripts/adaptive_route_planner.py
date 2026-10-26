@@ -425,6 +425,24 @@ def run_astar(passable, risk, start_rc, end_rc, pixel_width_m, pixel_height_m,
               risk_weight, slopes=None, aspects=None, slope_limit=20.0,
               aspect_edge_weight=0.10):
     height, width = passable.shape
+    moves = [(dr, dc) for dr in (-1, 0, 1) for dc in (-1, 0, 1) if (dr, dc) != (0, 0)]
+    move_index = {move: i for i, move in enumerate(moves)}
+    aspect_edge_grid = None
+    if slopes is not None and aspects is not None:
+        # Precompute the direction-aware cross-slope term once per cell/move.
+        # This keeps the inner A* loop free of per-edge trigonometry.
+        aspect_edge_grid = np.zeros((len(moves), height, width), dtype=np.float32)
+        slope_radians = np.deg2rad(np.clip(slopes, 0.0, 89.0))
+        aspect_radians = np.deg2rad(aspects)
+        for move_id, (dr, dc) in enumerate(moves):
+            bearing = math.atan2(dc * pixel_width_m, -dr * pixel_height_m)
+            delta = bearing - aspect_radians
+            cross_gradient = np.tan(slope_radians) * np.abs(np.sin(delta))
+            cross_degrees = np.rad2deg(np.arctan(cross_gradient))
+            aspect_edge_grid[move_id] = np.clip(
+                np.nan_to_num(cross_degrees / max(float(slope_limit), 1e-6), nan=0.0),
+                0.0, 1.0,
+            )
     start_id = start_rc[0] * width + start_rc[1]
     end_id = end_rc[0] * width + end_rc[1]
     best = np.full(height * width, np.inf, dtype=np.float64)
@@ -457,10 +475,12 @@ def run_astar(passable, risk, start_rc, end_rc, pixel_width_m, pixel_height_m,
                 nxt = nr * width + nc
                 step = math.hypot(dc * pixel_width_m, dr * pixel_height_m)
                 edge_risk = (risk[row, col] + risk[nr, nc]) / 2.0
-                if slopes is not None and aspects is not None:
-                    aspect_risk = transition_cross_slope_risk(
-                        slopes, aspects, row, col, nr, nc,
-                        pixel_width_m, pixel_height_m, slope_limit)
+                if aspect_edge_grid is not None:
+                    move_id = move_index[(dr, dc)]
+                    aspect_risk = 0.5 * (
+                        aspect_edge_grid[move_id, row, col] +
+                        aspect_edge_grid[move_id, nr, nc]
+                    )
                     edge_risk = (edge_risk + aspect_edge_weight * aspect_risk) / (1.0 + aspect_edge_weight)
                 edge = step * (1.0 + risk_weight * edge_risk)
                 candidate = cost + edge
@@ -740,6 +760,10 @@ def plan_local(payload, product, start, end, requested_distance, mode, max_slope
         name: int(np.sum(path_classes == name))
         for name in ("impassable", "high", "caution", "safe", "unknown")
     }
+    vision_metrics = load_vision_metrics()
+    vision_test_metrics = vision_metrics.get("modality_ablation_results", {}).get(
+        "multimodal", vision_metrics.get("test_metrics_vs_weak_labels", {})
+    )
     return {
         "status": "success",
         "planner": (
@@ -789,7 +813,7 @@ def plan_local(payload, product, start, end, requested_distance, mode, max_slope
             "source": str(VISION_HAZARD_RASTER) if vision_risk is not None else None,
             "weight": vision_weight_requested if vision_risk is not None else 0.0,
             "coverage_fraction_of_route_search_grid": round(vision_coverage_fraction, 4),
-            "test_hazard_proxy_recall": load_vision_metrics().get("test_metrics_vs_weak_labels", {}).get("hazard_proxy_recall_vs_weak_labels_classes_1_2"),
+            "test_hazard_proxy_recall": vision_test_metrics.get("hazard_proxy_recall_vs_weak_labels_classes_1_2"),
             "test_metric_basis": "weak DTM-derived labels; not independent visual ground truth",
             "model": "dual-stream gated-fusion U-Net: CTX image plus TTA terrain geometry",
             "warning": "Experimental model trained on weak DTM-derived labels; no human-reviewed visual hazard labels are available and scores are not calibrated safety probabilities.",

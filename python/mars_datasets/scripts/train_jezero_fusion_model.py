@@ -96,7 +96,7 @@ class PatchDataset(Dataset):
             if random.random() < .5:
                 x, y = x.transpose(-1,-2), y.transpose(-1,-2)
                 east, north = x[3].clone(), x[4].clone()
-                x[3], x[4] = north, east
+                x[3], x[4] = -north, east
             if random.random() < .7:
                 gain, offset = random.uniform(.8,1.2), random.uniform(-.08,.08)
                 noise = torch.randn_like(x[0]) * random.uniform(0,.015)
@@ -280,7 +280,10 @@ def evaluate(model,loader,device,weights,amp_enabled):
 
 
 def train_variant(name,train_loader,val_loader,weights,device,args,checkpoint=None):
+    random.seed(SEED)
+    np.random.seed(SEED)
     torch.manual_seed(SEED)
+    if torch.cuda.is_available(): torch.cuda.manual_seed_all(SEED)
     model=JezeroFusionUNet(name).to(device)
     optimizer=torch.optim.AdamW(model.parameters(),lr=args.learning_rate,weight_decay=1e-4)
     scheduler=torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer,mode="max",factor=.5,patience=2,min_lr=1e-6)

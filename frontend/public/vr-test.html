@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+    <meta name="theme-color" content="#140d0a" />
+    <title>MarsWalk · Phone Head Tracking Test</title>
+    <link rel="stylesheet" href="./css/vr-test.css" />
+    <script type="importmap">
+      { "imports": { "three": "https://unpkg.com/three@0.180.0/build/three.module.js" } }
+    </script>
+    <script type="module" src="./js/vr-test.js"></script>
+  </head>
+  <body>
+    <canvas id="vr-scene" aria-label="Procedural Mars-like landscape for testing phone head tracking"></canvas>
+    <div class="vr-hud" id="vr-hud">
+      <a class="vr-back" href="./map.html">← MarsWalk</a>
+      <div class="vr-title"><span>TRACKING PROTOTYPE</span><h1>Turn your head</h1><p>Look around the simple landscape. This test checks phone motion tracking only.</p></div>
+      <div class="vr-actions">
+        <button id="motion-button" type="button">Enable phone motion</button>
+        <button id="stereo-button" type="button" aria-pressed="false">Split-screen: off</button>
+        <button id="recenter-button" type="button">Recenter view</button>
+        <button id="fullscreen-button" type="button">Headset mode</button>
+      </div>
+      <div class="vr-status" id="vr-status" role="status" aria-live="polite">Desktop preview: drag to look. Open this page on your phone to test head tracking.</div>
+      <div class="vr-compass"><span>HEADING</span><strong id="heading-value">0°</strong></div>
+      <details class="vr-help">
+        <summary>Connect your phone to the laptop</summary>
+        <ol>
+          <li>Connect the phone to this laptop with USB and enable USB debugging.</li>
+          <li>In PowerShell, run <code>adb reverse tcp:5001 tcp:5001</code>.</li>
+          <li>Open Chrome on the phone and go to <code>http://localhost:5001/vr-test.html</code>.</li>
+          <li>Tap <strong>Enable phone motion</strong>, then <strong>Headset mode</strong>. Turn the phone sideways and place it in the viewer.</li>
+        </ol>
+        <p>Motion sensors require a secure browser context. The localhost/ADB method avoids exposing the development server to your Wi-Fi network. You can also use an HTTPS-hosted copy.</p>
+      </details>
+      <p class="vr-limit">Prototype only: no lens distortion correction, IPD/headset calibration, positional tracking, route data, or rover controls yet.</p>
+    </div>
+    <div class="vr-center-mark" aria-hidden="true"><span></span></div>
+    <div class="vr-eye-label vr-eye-left" aria-hidden="true">LEFT EYE</div>
+    <div class="vr-eye-label vr-eye-right" aria-hidden="true">RIGHT EYE</div>
+  </body>
+</html>

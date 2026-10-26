@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import { initMissionPlanner } from "./mission-planner.js";
 
 const canvas3D = document.querySelector("#mars-scene");
 const containerBox = document.querySelector("#mars-3d-box");
@@ -459,6 +460,10 @@ function setRouteEndpoint(which, lat, lon) {
   latInput.value = point.lat.toFixed(4);
   lonInput.value = point.lon.toFixed(4);
   coordinateLabel.textContent = point.lat.toFixed(3) + ", " + point.lon.toFixed(3);
+  const missionLat = document.querySelector(isStart ? "#mission-start-lat" : "#mission-end-lat");
+  const missionLon = document.querySelector(isStart ? "#mission-start-lon" : "#mission-end-lon");
+  if (missionLat) missionLat.value = point.lat.toFixed(4);
+  if (missionLon) missionLon.value = point.lon.toFixed(4);
   routePlanButton.disabled = !(routeStart && routeEnd);
   routeHintEl.textContent = (isStart ? "Start" : "Destination") + " set · choose the other endpoint or calculate the route.";
   return true;
@@ -493,6 +498,10 @@ function clearRoutePlan() {
   routeStartLonInput.value = "";
   routeEndLatInput.value = "";
   routeEndLonInput.value = "";
+  ["#mission-start-lat", "#mission-start-lon", "#mission-end-lat", "#mission-end-lon"].forEach((selector) => {
+    const input = document.querySelector(selector);
+    if (input) input.value = "";
+  });
   startCoordinateLabel.textContent = "Not set";
   endCoordinateLabel.textContent = "Not set";
   routePlanButton.disabled = true;
@@ -501,7 +510,63 @@ function clearRoutePlan() {
   routeHintEl.textContent = "Choose start and destination points on the globe or map.";
 }
 
-async function calculateMarsRoute() {
+function renderMarsRoute(payload) {
+  if (plannedRouteLayer) mars2DMap.removeLayer(plannedRouteLayer);
+  plannedRouteLayer = null;
+  disposePlannedGlobeRoute();
+  const snappedStart = payload.endpoints.start;
+  const snappedEnd = payload.endpoints.end;
+  setRouteEndpoint("start", snappedStart.lat, snappedStart.lon);
+  setRouteEndpoint("end", snappedEnd.lat, snappedEnd.lon);
+  const coordinates = payload.route.geometry.coordinates;
+  const latLngs = coordinates.map(([routeLon, routeLat]) => [routeLat, routeLon]);
+  const routeDetails = payload.route_cell_details || [];
+  plannedRouteLayer = L.layerGroup().addTo(mars2DMap);
+  for (let index = 0; index < latLngs.length - 1; index += 1) {
+    const cellClass = routeDetails[index + 1]?.class || "unknown";
+    L.polyline([latLngs[index], latLngs[index + 1]], {
+      pane: "mars-routes-pane", color: terrainClassColor(cellClass), weight: 4, opacity: 0.97,
+    }).addTo(plannedRouteLayer);
+  }
+  const terrainStatus = payload.terrain_data?.status;
+  const maxRouteZoom = payload.terrain_data?.instrument === "HiRISE"
+    ? 16
+    : terrainStatus === "global_dem_window" ? 12
+      : terrainStatus === "local_dtm" ? 14 : 10;
+  mars2DMap.fitBounds(L.latLngBounds(latLngs), { padding: [30, 30], maxZoom: maxRouteZoom });
+
+  const globePoints = coordinates.map(([routeLon, routeLat]) => latLonToLocalVector3(routeLat, routeLon).normalize().multiplyScalar(GLOBE_RADIUS + 0.035));
+  plannedRouteGlobeLayer = new THREE.Group();
+  for (let index = 0; index < globePoints.length - 1; index += 1) {
+    const cellClass = routeDetails[index + 1]?.class || "unknown";
+    const segment = new THREE.Mesh(
+      new THREE.TubeGeometry(new THREE.LineCurve3(globePoints[index], globePoints[index + 1]), 1, 0.006, 6, false),
+      new THREE.MeshBasicMaterial({ color: terrainClassColor(cellClass) }),
+    );
+    plannedRouteGlobeLayer.add(segment);
+  }
+  planetSpin.add(plannedRouteGlobeLayer);
+
+  const classCounts = payload.terrain_assessment?.class_counts_on_route || {};
+  document.querySelector("#terrain-class-summary").textContent = "Route cells: " +
+    (classCounts.safe || 0) + " safe · " + (classCounts.caution || 0) + " caution · " +
+    (classCounts.high || 0) + " high · impassable cells are avoided.";
+  const metrics = payload.metrics;
+  const terrainSource = ["local_dtm", "global_dem_window"].includes(terrainStatus)
+    ? payload.terrain_data.instrument + " · " + payload.terrain_data.native_posting_m + " m posting · " + payload.terrain_data.route_grid_m + " m route grid"
+    : "global Parquet terrain fallback";
+  const fallbackWarning = payload.terrain_data?.fallback_reason
+    ? " · CAUTION: higher-resolution terrain rejected an endpoint; coarser fallback used"
+    : "";
+  const visionNote = payload.vision_model?.requested
+    ? payload.vision_model?.status?.startsWith("used_")
+      ? " · experimental vision cost · " + Math.round((payload.vision_model.coverage_fraction_of_route_search_grid || 0) * 100) + "% grid coverage"
+      : " · vision layer unavailable for this route area"
+    : "";
+  routeHintEl.textContent = payload.mode + " route · " + metrics.distance_km + " km · max slope " + metrics.max_slope_deg + "° · " + terrainSource + " · snapped " + snappedStart.snap_distance_km + "/" + snappedEnd.snap_distance_km + " km" + fallbackWarning + visionNote + ".";
+}
+
+async function calculateMarsRoute(options = {}) {
   if (!routeStart || !routeEnd) {
     routeHintEl.textContent = "Choose both a start and destination first.";
     return;
@@ -521,66 +586,20 @@ async function calculateMarsRoute() {
       headers: { "Content-Type": "application/json", Accept: "application/json" },
       body: JSON.stringify({
         start: routeStart, end: routeEnd, mode: routeModeSelect.value || "balanced",
-        use_vision_model: Boolean(routeVisionToggle?.checked),
-        vision_weight: routeVisionToggle?.checked ? 0.15 : 0,
+        use_vision_model: options.useVision ?? Boolean(routeVisionToggle?.checked),
+        vision_weight: (options.useVision ?? Boolean(routeVisionToggle?.checked)) ? 0.15 : 0,
+        ...(Number.isFinite(options.maxSlope) ? { max_slope_deg: options.maxSlope } : {}),
       }),
     });
     const payload = await response.json();
     if (!response.ok) throw new Error(payload.error || "Route calculation failed (" + response.status + ")");
     if (plannedRouteLayer) mars2DMap.removeLayer(plannedRouteLayer);
     disposePlannedGlobeRoute();
-    const snappedStart = payload.endpoints.start;
-    const snappedEnd = payload.endpoints.end;
-    setRouteEndpoint("start", snappedStart.lat, snappedStart.lon);
-    setRouteEndpoint("end", snappedEnd.lat, snappedEnd.lon);
-    const coordinates = payload.route.geometry.coordinates;
-    const latLngs = coordinates.map(([routeLon, routeLat]) => [routeLat, routeLon]);
-    const routeDetails = payload.route_cell_details || [];
-    plannedRouteLayer = L.layerGroup().addTo(mars2DMap);
-    for (let index = 0; index < latLngs.length - 1; index += 1) {
-      const cellClass = routeDetails[index + 1]?.class || "unknown";
-      L.polyline([latLngs[index], latLngs[index + 1]], {
-        pane: "mars-routes-pane", color: terrainClassColor(cellClass), weight: 4, opacity: 0.97,
-      }).addTo(plannedRouteLayer);
-    }
-    const terrainStatus = payload.terrain_data?.status;
-    const maxRouteZoom = payload.terrain_data?.instrument === "HiRISE"
-      ? 16
-      : terrainStatus === "global_dem_window" ? 12
-        : terrainStatus === "local_dtm" ? 14 : 10;
-    mars2DMap.fitBounds(L.latLngBounds(latLngs), { padding: [30, 30], maxZoom: maxRouteZoom });
-
-    const globePoints = coordinates.map(([routeLon, routeLat]) => latLonToLocalVector3(routeLat, routeLon).normalize().multiplyScalar(GLOBE_RADIUS + 0.035));
-    plannedRouteGlobeLayer = new THREE.Group();
-    for (let index = 0; index < globePoints.length - 1; index += 1) {
-      const cellClass = routeDetails[index + 1]?.class || "unknown";
-      const segment = new THREE.Mesh(
-        new THREE.TubeGeometry(new THREE.LineCurve3(globePoints[index], globePoints[index + 1]), 1, 0.006, 6, false),
-        new THREE.MeshBasicMaterial({ color: terrainClassColor(cellClass) }),
-      );
-      plannedRouteGlobeLayer.add(segment);
-    }
-    planetSpin.add(plannedRouteGlobeLayer);
-
-    const classCounts = payload.terrain_assessment?.class_counts_on_route || {};
-    document.querySelector("#terrain-class-summary").textContent = "Route cells: " +
-      (classCounts.safe || 0) + " safe · " + (classCounts.caution || 0) + " caution · " +
-      (classCounts.high || 0) + " high · impassable cells are avoided.";
-    const metrics = payload.metrics;
-    const terrainSource = ["local_dtm", "global_dem_window"].includes(terrainStatus)
-      ? payload.terrain_data.instrument + " · " + payload.terrain_data.native_posting_m + " m posting · " + payload.terrain_data.route_grid_m + " m route grid"
-      : "global Parquet terrain fallback";
-    const fallbackWarning = payload.terrain_data?.fallback_reason
-      ? " · CAUTION: higher-resolution terrain rejected an endpoint; coarser fallback used"
-      : "";
-    const visionNote = routeVisionToggle?.checked
-      ? payload.vision_model?.status?.startsWith("used_")
-        ? " · experimental vision cost · " + Math.round((payload.vision_model.coverage_fraction_of_route_search_grid || 0) * 100) + "% grid coverage"
-        : " · vision layer unavailable for this route area"
-      : "";
-    routeHintEl.textContent = payload.mode + " route · " + metrics.distance_km + " km · max slope " + metrics.max_slope_deg + "° · " + terrainSource + " · snapped " + snappedStart.snap_distance_km + "/" + snappedEnd.snap_distance_km + " km" + fallbackWarning + visionNote + ".";
+    renderMarsRoute(payload);
+    return payload;
   } catch (error) {
     routeHintEl.textContent = "Route unavailable: " + error.message;
+    return null;
   } finally {
     routePlanButton.disabled = !(routeStart && routeEnd);
     routePlanButton.textContent = "Calculate route";
@@ -1319,4 +1338,9 @@ document.querySelector("#show-global-map").addEventListener("click", () => {
   currentState.zoom = 3;
   zoomLabelEl.textContent = "Z: 3";
   mars2DMap.setView([0, 0], 3);
+});
+initMissionPlanner({
+  setEndpoint: setRouteEndpoint,
+  renderRoute: renderMarsRoute,
+  clearRoute: clearRoutePlan,
 });

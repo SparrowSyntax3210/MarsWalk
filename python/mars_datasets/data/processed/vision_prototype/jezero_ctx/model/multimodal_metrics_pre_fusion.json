@@ -1,0 +1,190 @@
+{
+  "status": "experimental_multimodal_weak_label_model",
+  "model": "small U-Net, 7 aligned CTX/DTM channels",
+  "input_channels": [
+    "image",
+    "elevation",
+    "slope",
+    "aspect_east",
+    "aspect_north",
+    "roughness",
+    "relief"
+  ],
+  "classes": {
+    "0": "terrain_not_flagged",
+    "1": "steep_slope_proxy",
+    "2": "high_roughness_proxy"
+  },
+  "label_source": "weak DTM thresholds; not human-verified visual labels",
+  "dune_detection": "not trained: no mapped dune positives in this CTX footprint",
+  "route_integration": "optional low-weight A* cost only; not calibrated safety probability",
+  "split_patch_counts": {
+    "train": 54,
+    "validation": 28,
+    "test": 6
+  },
+  "device": "cpu",
+  "best_validation_loss_vs_weak_labels": 0.2596023700066975,
+  "test_loss_vs_weak_labels": 0.2866343557834625,
+  "validation_metrics_vs_weak_labels": {
+    "pixel_accuracy_vs_weak_labels": 0.9319181721049817,
+    "class_iou_vs_weak_labels": {
+      "0": 0.9711196630871819,
+      "1": 0.0,
+      "2": 0.48081205741786426
+    },
+    "class_recall_vs_weak_labels": {
+      "0": 0.9786521317381865,
+      "1": 0.0,
+      "2": 0.9016274213856151
+    },
+    "hazard_proxy_recall_vs_weak_labels_classes_1_2": 0.5620189237541374,
+    "confusion_matrix_rows_true_cols_predicted": [
+      [
+        1589013,
+        0,
+        34662
+      ],
+      [
+        15,
+        0,
+        77253
+      ],
+      [
+        12579,
+        0,
+        115292
+      ]
+    ],
+    "evaluated_pixels": 1828814
+  },
+  "test_metrics_vs_weak_labels": {
+    "pixel_accuracy_vs_weak_labels": 0.9077731728986601,
+    "class_iou_vs_weak_labels": {
+      "0": 0.9664813921282343,
+      "1": 0.0,
+      "2": 0.5564378689455874
+    },
+    "class_recall_vs_weak_labels": {
+      "0": 0.9831649402390438,
+      "1": 0.0,
+      "2": 0.8926951043131972
+    },
+    "hazard_proxy_recall_vs_weak_labels_classes_1_2": 0.5952676636896898,
+    "confusion_matrix_rows_true_cols_predicted": [
+      [
+        308468,
+        0,
+        5282
+      ],
+      [
+        0,
+        0,
+        25219
+      ],
+      [
+        5416,
+        0,
+        45057
+      ]
+    ],
+    "evaluated_pixels": 389442
+  },
+  "limitations": [
+    "Several input channels are also used to create the target labels, so high scores mean agreement with proxy rules, not independent vision accuracy.",
+    "This model does not validate dune, crater-rim, or wheel-slip detection.",
+    "TES/MCD/geology/vector factors remain in the separate approximately 1 km context Parquet; they are not invented as 20 m measurements."
+  ],
+  "history": [
+    {
+      "epoch": 1,
+      "train_loss": 1.1252698813165938,
+      "validation_loss": 1.0267143930707658
+    },
+    {
+      "epoch": 2,
+      "train_loss": 1.0249325505324773,
+      "validation_loss": 0.9053118995257786
+    },
+    {
+      "epoch": 3,
+      "train_loss": 0.954947122505733,
+      "validation_loss": 0.8267098920685905
+    },
+    {
+      "epoch": 4,
+      "train_loss": 0.8939391885484967,
+      "validation_loss": 0.740701539175851
+    },
+    {
+      "epoch": 5,
+      "train_loss": 0.8317106281008039,
+      "validation_loss": 0.6470774752753121
+    },
+    {
+      "epoch": 6,
+      "train_loss": 0.8123584389686584,
+      "validation_loss": 0.5838253327778408
+    },
+    {
+      "epoch": 7,
+      "train_loss": 0.7707758801324027,
+      "validation_loss": 0.5238921429429736
+    },
+    {
+      "epoch": 8,
+      "train_loss": 0.7564039549657277,
+      "validation_loss": 0.4984037790979658
+    },
+    {
+      "epoch": 9,
+      "train_loss": 0.7309913166931697,
+      "validation_loss": 0.46658868874822346
+    },
+    {
+      "epoch": 10,
+      "train_loss": 0.7088393952165332,
+      "validation_loss": 0.409311626638685
+    },
+    {
+      "epoch": 11,
+      "train_loss": 0.6836414741618293,
+      "validation_loss": 0.37367001601627897
+    },
+    {
+      "epoch": 12,
+      "train_loss": 0.6415655378784452,
+      "validation_loss": 0.36775856784411837
+    },
+    {
+      "epoch": 13,
+      "train_loss": 0.6545874008110592,
+      "validation_loss": 0.3268537861960275
+    },
+    {
+      "epoch": 14,
+      "train_loss": 0.6162031654800687,
+      "validation_loss": 0.30987077951431274
+    },
+    {
+      "epoch": 15,
+      "train_loss": 0.6179467503513608,
+      "validation_loss": 0.2865537979773113
+    },
+    {
+      "epoch": 16,
+      "train_loss": 0.6067373369421277,
+      "validation_loss": 0.27681371356759754
+    },
+    {
+      "epoch": 17,
+      "train_loss": 0.5942781844309398,
+      "validation_loss": 0.2662373738629477
+    },
+    {
+      "epoch": 18,
+      "train_loss": 0.5430527286870139,
+      "validation_loss": 0.2596023700066975
+    }
+  ]
+}

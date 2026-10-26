@@ -29,7 +29,7 @@ python/mars_datasets/
 3. If a local DTM is unavailable or cannot support the requested corridor, it calls `scripts/global_tile_route_planner.py`, which reads only the relevant local Parquet tile(s) and runs A* on their grid.
 4. If `use_vision_model` is enabled and the route lies within the Jezero raster footprint, the planner may add the experimental probability surface as a low-weight cost. Outside that one scene, global Parquet routes remain terrain-only.
 
-The global grid has nominal approximately 1 km cells; the local CTX DTM is about 20 m posting and the local HiRISE DTM is about 1 m posting. Posting is not the same as guaranteed hazard-detection resolution. The Jezero model currently uses weak DTM-derived labels and should remain an optional experiment until better labels and evaluation are available.
+The global grid has nominal approximately 1 km cells; the local CTX DTM is about 20 m posting and the local HiRISE DTM is about 1 m posting. Posting is not the same as guaranteed hazard-detection resolution. The Jezero model currently uses weak DTM-derived labels and should remain an optional experiment until better labels and evaluation are available. Its U-Net gets CTX intensity, elevation, TTA slope, aspect components, plane-residual roughness, and local relief. A* separately scores slope/relief/roughness and a route-direction-aware aspect cross-slope term; coarse dune/crater context remains separate.
 
 ## Data kept locally
 
@@ -65,3 +65,9 @@ python/mars_datasets/scripts/.venv/Scripts/python.exe -m pip install -r python/m
 ```
 
 For Jezero model work, install the extra dependencies from `requirements-vision.txt` into that environment. The repository does not contain the global Parquet tiles or the large Jezero raster stack, so copying the local data backup is required for the matching feature to run.
+
+## Independent Jezero visual review
+
+Open `/vision-review.html` while MarsWalk is running to draw human-reviewed hazard, clear-ground, and uncertain polygons on the CTX image without seeing model predictions. Save them locally, then run `python/mars_datasets/scripts/evaluate_jezero_human_labels.py` to compare reviewed labels with model scores and the terrain-only baseline. The script requires both hazard and clear-ground annotations; until those are provided, there are no independent validation scores. See `data/processed/vision_prototype/jezero_ctx/HUMAN_REVIEW.md` for the review steps and limits.
+
+The browser review feature is served by `backend/src/routes/vision-review.js` and uses the static page, JavaScript, CSS, and warm-tone CTX preview in `frontend/public/vision-review.html`, `frontend/public/js/vision-review.js`, `frontend/public/css/vision-review.css`, and `frontend/public/data/vision-review/`. It writes only the human annotation GeoJSON; it does not replace the route planner or training data.

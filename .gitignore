@@ -30,6 +30,7 @@ node_modules/
 /python/mars_datasets/data/processed/vision_prototype/jezero_ctx/*.parquet
 !/python/mars_datasets/data/processed/vision_prototype/jezero_ctx/jezero_context_1km.parquet
 /python/mars_datasets/data/processed/vision_prototype/jezero_ctx/model/*.pt
+!/python/mars_datasets/data/processed/vision_prototype/jezero_ctx/model/jezero_multimodal_unet_smallunet_baseline.pt
 !/python/mars_datasets/data/processed/vision_prototype/jezero_ctx/model/jezero_multimodal_unet.pt
 !/python/mars_datasets/data/processed/vision_prototype/jezero_ctx/model/jezero_small_unet.pt
 /python/mars_datasets/data/processed/vision_prototype/jezero_ctx/model/*.pth
