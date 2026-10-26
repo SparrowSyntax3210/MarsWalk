@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "purpose": "Backend-only Mars data access. The current map route demo reads the saved 2,128-cell Gale-area corridor Parquet; global scientific source layers remain in native spatial formats.",
+  "data_root": "data",
+  "assets": [
+    {"id":"global_dem","path":"data/processed/rasters/global/mola_hrsc_blend_dem_1km.tif","format":"GeoTIFF","role":"Elevation source for regional route windows"},
+    {"id":"global_slope","path":"data/processed/rasters/global/mola_hrsc_blend_slope_deg_1km.tif","format":"GeoTIFF","role":"Slope feature; recompute only when source DEM changes"},
+    {"id":"tes_thermal_inertia","path":"data/processed/rasters/global/tes_thermal_inertia_*_20ppd.tif","format":"GeoTIFF","role":"Coarse material-property proxy with interpolation masks"},
+    {"id":"geology_dunes","path":"data/processed/vectors/routing_layers.gpkg","format":"GeoPackage","role":"Spatially indexed geology and dune queries"},
+    {"id":"craters","path":"data/processed/vectors/robbins_craters.csv","format":"CSV","role":"Crater point/diameter source; load into spatial index for regional queries"},
+    {"id":"mars_climate_database","path":"data/processed/climate/mcd_6.2_bundle","format":"NetCDF","role":"Scenario-based climate lookup by location, season, local time, and altitude"},
+    {"id":"ai4mars","path":"data/processed/ai4mars","format":"Images, masks, CSV manifests","role":"Future terrain image segmentation training; not route cost labels"}
+  ],
+  "request_contract": {"start":{"lat":"number","lon":"number"},"end":{"lat":"number","lon":"number"}},
+  "response_contract": {"status":"string","route":"GeoJSON LineString","metrics":"object","limitations":"array"},
+  "access_rules": ["Current map route demo reads only data/processed/route_grid/sample_corridor_jezero.parquet (2,128 cells near Gale Crater despite the filename).","Reject endpoints outside the corridor coverage instead of silently routing elsewhere.","Run A* on contiguous row/column cells in the saved corridor grid.","Do not serialize global rasters or NetCDF arrays as JSON for the browser.","Return route geometry, summary metrics, and limitations to JavaScript."]
+}

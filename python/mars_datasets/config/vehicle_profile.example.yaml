@@ -1,0 +1,19 @@
+schema_version: 1
+profile_name: example_vehicle
+source: null
+units: SI
+values:
+  max_slope_deg: null
+  speed_flat_m_s: null
+  speed_slope_model: null
+  energy_wh_per_km_flat: null
+  energy_slope_coefficient: null
+  wheel_slip_limit_pct: null
+  ground_clearance_m: null
+  wheelbase_m: null
+  rover_mass_kg: null
+  payload_mass_kg: null
+  battery_capacity_wh: null
+  reserve_fraction: null
+  hazard_weights: {}
+

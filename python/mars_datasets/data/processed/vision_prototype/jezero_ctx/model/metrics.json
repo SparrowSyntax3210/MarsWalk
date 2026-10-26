@@ -1,0 +1,217 @@
+{
+  "status": "experimental_weak_label_model",
+  "model": "small U-Net, grayscale CTX input, 3 output classes",
+  "class_ids": {
+    "0": "terrain_not_flagged",
+    "1": "steep_slope_proxy",
+    "2": "high_roughness_proxy"
+  },
+  "training_labels": "weak labels generated from DTM thresholds; not human-verified visual ground truth",
+  "dune_detection": "not trained: there are zero mapped dune polygons in the Jezero CTX DTM footprint",
+  "route_planner_integration": "disabled; do not treat predictions as validated hazards or safety scores",
+  "split_method": "neighboring 2x2 patches kept in the same deterministic spatial group",
+  "split_patch_counts": {
+    "train": 54,
+    "validation": 28,
+    "test": 6
+  },
+  "device": "cpu",
+  "best_validation_loss_vs_weak_labels": 0.6657549824033465,
+  "test_loss_vs_weak_labels": 0.6643828451633453,
+  "validation_metrics_vs_weak_labels": {
+    "pixel_accuracy_vs_weak_labels": 0.8220546211916575,
+    "class_iou_vs_weak_labels": {
+      "0": 0.8343590935926455,
+      "1": 0.11344994342140079,
+      "2": 0.08612015255750209
+    },
+    "class_recall_vs_weak_labels": {
+      "0": 0.9017383404930174,
+      "1": 0.2608065434591293,
+      "2": 0.14939274737821712
+    },
+    "hazard_proxy_recall_vs_weak_labels_classes_1_2": 0.1913580547823671,
+    "confusion_matrix_rows_true_cols_predicted": [
+      [
+        1464130,
+        80362,
+        79183
+      ],
+      [
+        42352,
+        20152,
+        14764
+      ],
+      [
+        88769,
+        19999,
+        19103
+      ]
+    ],
+    "evaluated_pixels": 1828814
+  },
+  "test_metrics_vs_weak_labels": {
+    "pixel_accuracy_vs_weak_labels": 0.7915633136641657,
+    "class_iou_vs_weak_labels": {
+      "0": 0.8088151791988756,
+      "1": 0.24806596338062326,
+      "2": 0.13992747619888363
+    },
+    "class_recall_vs_weak_labels": {
+      "0": 0.9170868525896414,
+      "1": 0.40560688369879855,
+      "2": 0.20412894022546707
+    },
+    "hazard_proxy_recall_vs_weak_labels_classes_1_2": 0.27125720023252126,
+    "confusion_matrix_rows_true_cols_predicted": [
+      [
+        287736,
+        9542,
+        16472
+      ],
+      [
+        8304,
+        10229,
+        6686
+      ],
+      [
+        33696,
+        6474,
+        10303
+      ]
+    ],
+    "evaluated_pixels": 389442
+  },
+  "history": [
+    {
+      "epoch": 1,
+      "train_loss": 1.0916305822985513,
+      "validation_loss": 0.919270430292402
+    },
+    {
+      "epoch": 2,
+      "train_loss": 1.0424573932375227,
+      "validation_loss": 0.8764112847191947
+    },
+    {
+      "epoch": 3,
+      "train_loss": 1.0355305118220193,
+      "validation_loss": 0.8565713252340045
+    },
+    {
+      "epoch": 4,
+      "train_loss": 1.0163275769778661,
+      "validation_loss": 0.8551922014781407
+    },
+    {
+      "epoch": 5,
+      "train_loss": 1.0038194017750877,
+      "validation_loss": 0.8357221909931728
+    },
+    {
+      "epoch": 6,
+      "train_loss": 0.9840750779424395,
+      "validation_loss": 0.8299721649714878
+    },
+    {
+      "epoch": 7,
+      "train_loss": 0.9869338742324284,
+      "validation_loss": 0.7916701606341771
+    },
+    {
+      "epoch": 8,
+      "train_loss": 0.9627530489649091,
+      "validation_loss": 0.810294508934021
+    },
+    {
+      "epoch": 9,
+      "train_loss": 0.9566794420991626,
+      "validation_loss": 0.7778241549219403
+    },
+    {
+      "epoch": 10,
+      "train_loss": 0.949587983744485,
+      "validation_loss": 0.7946911879948207
+    },
+    {
+      "epoch": 11,
+      "train_loss": 0.9487808261598859,
+      "validation_loss": 0.7299633962767464
+    },
+    {
+      "epoch": 12,
+      "train_loss": 0.9382095422063556,
+      "validation_loss": 0.7278152874537877
+    },
+    {
+      "epoch": 13,
+      "train_loss": 0.9447947783129556,
+      "validation_loss": 0.7373809729303632
+    },
+    {
+      "epoch": 14,
+      "train_loss": 0.9235128845487323,
+      "validation_loss": 0.7129301769392831
+    },
+    {
+      "epoch": 15,
+      "train_loss": 0.9361722256456103,
+      "validation_loss": 0.7690844535827637
+    },
+    {
+      "epoch": 16,
+      "train_loss": 0.9387239941528865,
+      "validation_loss": 0.7261851685387748
+    },
+    {
+      "epoch": 17,
+      "train_loss": 0.9199983605316707,
+      "validation_loss": 0.7159602812358311
+    },
+    {
+      "epoch": 18,
+      "train_loss": 0.9132972487381527,
+      "validation_loss": 0.7359214850834438
+    },
+    {
+      "epoch": 19,
+      "train_loss": 0.905716598033905,
+      "validation_loss": 0.7330572264535087
+    },
+    {
+      "epoch": 20,
+      "train_loss": 0.9243849430765424,
+      "validation_loss": 0.6657549824033465
+    },
+    {
+      "epoch": 21,
+      "train_loss": 0.9247822846685138,
+      "validation_loss": 0.6879359654017857
+    },
+    {
+      "epoch": 22,
+      "train_loss": 0.9258072674274445,
+      "validation_loss": 0.7456729412078857
+    },
+    {
+      "epoch": 23,
+      "train_loss": 0.9423212919916425,
+      "validation_loss": 0.675870588847569
+    },
+    {
+      "epoch": 24,
+      "train_loss": 0.9138206584112984,
+      "validation_loss": 0.7037335123334613
+    },
+    {
+      "epoch": 25,
+      "train_loss": 0.878262745482581,
+      "validation_loss": 0.6876085570880345
+    },
+    {
+      "epoch": 26,
+      "train_loss": 0.9070252307823726,
+      "validation_loss": 0.7000436271939959
+    }
+  ]
+}

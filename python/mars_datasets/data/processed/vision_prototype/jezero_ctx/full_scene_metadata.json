@@ -1,0 +1,127 @@
+{
+  "region": "Jezero crater local CTX stereo footprint",
+  "high_resolution_stack": "C:\\Users\\Harsh Goel\\Downloads\\MarsWalk\\python\\mars_datasets\\data\\processed\\vision_prototype\\jezero_ctx\\jezero_full_scene_features_20m.tif",
+  "high_resolution_stack_m": {
+    "crs_wkt": "PROJCS[\"Mars (2015) - Sphere / Ocentric / Equirectangular, clon = 0\",GEOGCS[\"Mars (2015) - Sphere / Ocentric\",DATUM[\"Mars (2015) - Sphere\",SPHEROID[\"Mars (2015) - Sphere\",3396190,0,AUTHORITY[\"IAU\",\"49900\"]],AUTHORITY[\"IAU\",\"49900\"]],PRIMEM[\"Reference Meridian\",0,AUTHORITY[\"IAU\",\"49900\"]],UNIT[\"degree\",0.0174532925199433,AUTHORITY[\"EPSG\",\"9122\"]],AUTHORITY[\"IAU\",\"49900\"]],PROJECTION[\"Equirectangular\"],PARAMETER[\"standard_parallel_1\",0],PARAMETER[\"central_meridian\",0],PARAMETER[\"false_easting\",0],PARAMETER[\"false_northing\",0],UNIT[\"metre\",1,AUTHORITY[\"EPSG\",\"9001\"]],AXIS[\"Easting\",EAST],AXIS[\"Northing\",NORTH],AUTHORITY[\"IAU\",\"49910\"]]",
+    "transform": [
+      20.162955124498982,
+      0.0,
+      4577133.445008798,
+      0.0,
+      -20.162955124498982,
+      1146178.5021103406
+    ],
+    "width": 2013,
+    "height": 4622,
+    "resolution_map_m": [
+      20.162955124498982,
+      20.162955124498982
+    ],
+    "bbox_lonlat_west_south_east_north": [
+      77.21900973360705,
+      17.764499314583308,
+      77.90375432719452,
+      19.336724605969938
+    ],
+    "band_descriptions": [
+      "ctx_orthoimage_dn",
+      "elevation_m",
+      "slope_deg",
+      "aspect_downslope_deg",
+      "roughness_3x3_plane_rms_m",
+      "relief_3x3_max_minus_min_m"
+    ],
+    "footprint_rows_written": 4622
+  },
+  "coarse_context_parquet": "C:\\Users\\Harsh Goel\\Downloads\\MarsWalk\\python\\mars_datasets\\data\\processed\\vision_prototype\\jezero_ctx\\jezero_context_1km.parquet",
+  "coarse_context": {
+    "source_tile": "C:\\Users\\Harsh Goel\\Downloads\\MarsWalk\\python\\mars_datasets\\data\\processed\\feature_store\\global_tiles\\10deg\\tile_10deg_w70_s10.parquet",
+    "source_manifest": "C:\\Users\\Harsh Goel\\Downloads\\MarsWalk\\python\\mars_datasets\\data\\processed\\feature_store\\global_tiles\\10deg\\tile_10deg_w70_s10.manifest.json",
+    "tile_resolution_note": "nominal 1 km at equator multiplied by stride",
+    "rows": 3990,
+    "columns": [
+      "row",
+      "col",
+      "latitude_deg",
+      "longitude_east_deg",
+      "elevation_m",
+      "slope_deg",
+      "aspect_deg",
+      "roughness_3x3_range_m",
+      "cell_width_m",
+      "cell_height_m",
+      "geology_unit_code",
+      "dune_hit",
+      "dune_distance_km",
+      "crater_edge_distance_km",
+      "nearest_crater_id",
+      "tes_ti_day_tiu",
+      "tes_ti_night_tiu",
+      "tes_ti_day_infilled",
+      "tes_ti_night_infilled",
+      "tes_ti_mean_tiu",
+      "mcd_tsurf",
+      "mcd_ps",
+      "mcd_tau_pref_gcm",
+      "mcd_temp",
+      "mcd_u",
+      "mcd_v",
+      "mcd_rho",
+      "mcd_col_h2ovapor",
+      "mcd_col_h2oice",
+      "mcd_co2ice",
+      "mcd_h2oice",
+      "mcd_fluxsurf_dn_sw",
+      "mcd_fluxsurf_lw",
+      "mcd_fluxsurf_dir_dn_sw",
+      "mcd_fluxsurf_up_sw",
+      "mcd_wind_speed",
+      "slope_grade_pct",
+      "tes_ti_day_night_delta_tiu",
+      "mcd_wind_direction_to_deg",
+      "mcd_ps_kpa",
+      "mcd_col_h2ovapor_mm_water_equiv",
+      "mcd_col_h2oice_mm_water_equiv",
+      "mcd_h2oice_surface_mm_water_equiv"
+    ],
+    "bounds_lonlat_with_margin": [
+      77.19900973360706,
+      17.744499314583308,
+      77.92375432719452,
+      19.356724605969937
+    ],
+    "mcd_metadata": {
+      "scenario": "clim_aveEUV",
+      "lower_atmosphere_scenario": "clim_aveEUV",
+      "thermosphere_euv_case": "ave",
+      "altitude_sources": [
+        "lower_atmosphere",
+        "surface/lower_atmosphere"
+      ],
+      "scenario_statistic": "mean",
+      "ls_deg": 150.0,
+      "local_true_solar_time_hours": 13.25,
+      "mcd_altitude_coordinate_km": 0.00448064,
+      "altitude_clamped_to_grid": false,
+      "seasonal_months": [
+        5,
+        6
+      ],
+      "seasonal_upper_weight": 0.5,
+      "grid_resolution": "MCD native GCM grid; typically 5.625 deg longitude x 3.75 deg latitude"
+    },
+    "semantic_metadata": {
+      "dune_hit": "dune_hit=1 means a cell intersects an included MGD3 dune polygon. 0 means no included polygon hit; it does not prove dune absence outside mapped product coverage.",
+      "dune_distance_km": "Minimum planar distance from each cell center to the union of included MGD3 dune polygons after projection into a local Mars spherical azimuthal-equidistant CRS; accurate for regional windows, approximate for very broad windows. A value of 0 means inside/on a mapped polygon. Product coverage remains incomplete, so distance is to mapped dunes only.",
+      "crater_edge_distance_km": "Spherical center distance minus half source diameter, clamped to zero; not a measured rim polygon.",
+      "mcd_spatial_resolution": "MCD variables are interpolated from the native GCM grid and repeated at terrain-cell locations; they are not independent 1 km measurements."
+    }
+  },
+  "usage": {
+    "vision_model": "Experimental 7-channel U-Net: CTX image, elevation, slope, aspect encoded east/north, plane-residual roughness, and 3x3 relief. Training labels are weak DTM-derived slope/roughness proxies; not human-verified. It does not ingest the coarse context fields as 20 m values.",
+    "A_star": "Use local elevation/slope/aspect/roughness at DTM scale; sample vector/TES/MCD context at its native nominal 1 km scale.",
+    "resolution_warning": "The high-resolution DTM does not make the coarse TES, MCD, geology, crater, or dune fields 20 m measurements.",
+    "coarse_context_model_use": "All source global feature tile columns are preserved in the separate nominal 1 km context Parquet. A* samples mapped dune/crater semantics; TES, MCD, geology and other fields remain context and are not calibrated mobility costs.",
+    "A_star_vision": "Optional JSON flag use_vision_model=true adds the experimental probability raster as a soft cost only; default remains off. Predictions never hard-block cells."
+  }
+}

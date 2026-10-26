@@ -1,0 +1,45 @@
+geology_unit_code,source_unit_code,description
+1,AHi,Amazonian and Hesperian impact unit
+2,AHtu,Amazonian and Hesperian transition undivided unit
+3,AHv,Amazonian and Hesperian volcanic
+4,ANa,Amazonian and Noachian apron unit
+5,Aa,Amazonian apron unit
+6,Ap,Amazonian polar unit
+7,Apu,Amazonian polar undivided unit
+8,Av,Amazonian volcanic unit
+9,Ave,Amazonian volcanic edifice
+10,HNb,Hesperian and Noachian basin unit
+11,HNhu,Hesperian and Noachian highland undivided unit
+12,HNt,Hesperian and Noachian transition unit
+13,Hp,Hesperian polar unit
+14,Hpe,Hesperian polar edifice unit
+15,Hpu,Hesperian polar undivided unit
+16,Ht,Hesperian transition unit
+17,Hto,Hesperian transition outflow unit
+18,Htu,Hesperian transition undivided unit
+19,Hve,Hesperian volcanic edifice unit
+20,Nhe,Noachian highland edifice unit
+21,Nhu,Noachian highland undivided unit
+22,Nve,Noachian volcanic edifice unit
+23,eAb,Early Amazonian basin unit
+24,eHb,Early Hesperian basin unit
+25,eHh,Early Hesperian highland unit
+26,eHt,Early Hesperian transition unit
+27,eHv,Early Hesperian volcanic unit
+28,eNh,Early Noachian highland unit
+29,eNhm,Early Noachian highland massif unit
+30,lAa,Late Amazonian apron unit
+31,lApc,Late Amazonian polar cap unit
+32,lApd,Late Amazonian polar dunes unit
+33,lAv,Late Amazonian volcanic unit
+34,lAvf,Late Amazonian volcanic field unit
+35,lHb,Late Hesperian basin unit
+36,lHl,Late Hesperian lowland unit
+37,lHt,Late Hesperian transition unit
+38,lHv,Late Hesperian volcanic unit
+39,lHvf,Late Hesperian volcanic field unit
+40,lNh,Late Noachian highland unit
+41,lNv,Late Noachian volcanic unit
+42,mAl,Middle Amazonian lowland unit
+43,mNh,Middle Noachian highland unit
+44,mNhm,Middle Noachian highland massif unit

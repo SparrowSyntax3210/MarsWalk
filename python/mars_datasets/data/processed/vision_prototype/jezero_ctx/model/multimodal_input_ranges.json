@@ -1,0 +1,33 @@
+{
+  "channel_names": [
+    "image",
+    "elevation",
+    "slope",
+    "aspect_east",
+    "aspect_north",
+    "roughness",
+    "relief"
+  ],
+  "ctx_orthoimage_dn": [
+    0.3077660608291626,
+    0.8267647695541381
+  ],
+  "elevation_m": [
+    -2682.854111328125,
+    -1584.376528320313
+  ],
+  "slope_deg": [
+    0.0,
+    45.0
+  ],
+  "roughness_rms_m": [
+    0.027814337238669395,
+    0.4777852678298951
+  ],
+  "relief_range_m": [
+    0.523466796875,
+    21.035190429687503
+  ],
+  "aspect_encoding": "sin/cos down-slope azimuth; transforms with flips/transpose",
+  "feature_stack": "C:\\Users\\Harsh Goel\\Downloads\\MarsWalk\\python\\mars_datasets\\data\\processed\\vision_prototype\\jezero_ctx\\jezero_full_scene_features_20m.tif"
+}

@@ -25,10 +25,10 @@
     </script>
   </head>
   <body>
-    <!-- SVG Warm-Tone Color Grading LUT for CTX Satellite Tiles -->
+    <!-- SVG warm-tone grading for HiRISE and CTX map tiles -->
     <svg width="0" height="0" style="position: absolute; pointer-events: none">
       <defs>
-        <filter id="ctx-warm-tone" color-interpolation-filters="sRGB">
+        <filter id="mars-warm-tone" color-interpolation-filters="sRGB">
           <feColorMatrix
             type="matrix"
             values="0.36 0.36 0.36 0 -0.03
@@ -54,7 +54,25 @@
       </defs>
     </svg>
 
-    <div class="container">
+    <div class="app-shell">
+      <aside class="app-sidebar" id="main-sidebar" aria-label="Main navigation">
+        <a class="brand" href="./map.html"><span class="brand-mark">M</span><span><strong>MarsWalk</strong><small>MISSION CONSOLE</small></span></a>
+        <div class="sidebar-caption">WORKSPACE</div>
+        <nav class="primary-nav" aria-label="Workspace sections">
+          <button class="nav-item is-active" type="button" data-view="explore" data-title="Explore Mars" data-copy="Browse the Martian surface, inspect map layers, and discover named locations." aria-current="page"><span class="nav-icon">⌖</span>Explore</button>
+          <button class="nav-item" type="button" data-view="route" data-title="Route Planning" data-copy="Choose a route mode, then select start and destination points on the map." aria-current="false"><span class="nav-icon">⌁</span>Route Planning</button>
+          <button class="nav-item" type="button" data-view="mission" data-title="Mission Planner" data-copy="Prepare mission objectives and review the planning tools as they come online." aria-current="false"><span class="nav-icon">◈</span>Mission Planner</button>
+          <button class="nav-item" type="button" data-view="ai-help" data-title="AI Help" data-copy="Get clear explanations of Mars terrain, route results, and mission data." aria-current="false"><span class="nav-icon">✧</span>AI Help</button>
+          <button class="nav-item" type="button" data-view="ar-engine" data-title="3D / AR Engine" data-copy="Explore the Mars globe now; Unreal Engine, phone AR, and controller support are planned." aria-current="false"><span class="nav-icon">◉</span>3D / AR Engine</button>
+        </nav>
+        <div class="sidebar-bottom"><span class="status-dot"></span><span><strong>Mars surface workspace</strong><small>Explore · plan · visualize</small></span></div>
+      </aside>
+      <main class="app-main">
+        <div class="workspace-toolbar">
+          <button id="sidebar-toggle" class="sidebar-toggle" type="button" aria-label="Close sidebar" aria-controls="main-sidebar" aria-expanded="true" title="Close sidebar"><span aria-hidden="true">☰</span></button>
+          <span class="toolbar-caption">MARS SURFACE WORKSPACE</span>
+        </div>
+<div class="container workspace-layout" id="workspace-layout" data-view="explore">
       <!-- Left Box: 3D Mars Globe + Region Sidebar & Labels -->
       <div class="box" id="mars-3d-box">
         <canvas id="mars-scene"></canvas>
@@ -134,20 +152,9 @@
 
         <!-- Basemap display controls -->
         <div class="hud-bottom">
-          <span class="map-hint" id="route-hint"
-            >Global route planner · availability depends on completed Parquet
-            tiles.</span
-          >
           <div class="controls-row">
-            <button id="route-plan-button" type="button">
-              Plan Mars route
-            </button>
-            <select id="route-mode-select" aria-label="Route mode">
-              <option value="balanced">Balanced</option>
-              <option value="safest">Safest</option>
-              <option value="fastest">Fastest</option>
-            </select>
             <select id="layer-select">
+              <option value="HIRISE_AUTO">HiRISE where available · CTX fallback · warm display</option>
               <option value="CTX_WARM">CTX image · warm display</option>
               <option value="CTX_RAW">CTX image · raw display</option>
               <option value="THEMIS_IR">THEMIS day infrared · image</option>
@@ -170,8 +177,61 @@
             <span id="zoom-label">Z: 8</span>
             <button id="zoom-in">+</button>
           </div>
+          <small id="map-source-note">HiRISE imagery appears only inside its footprints; route elevation uses the best matching DTM available.</small>
         </div>
       </div>
+      <section class="route-panel" id="route-panel" hidden>
+        <div class="section-kicker">GLOBAL ROUTE PLANNER</div>
+        <h2>Choose endpoints</h2>
+        <p class="route-intro">Search a named place in the globe catalog, click either map, or enter coordinates directly.</p>
+        <div class="route-endpoint" data-endpoint-card="start">
+          <div class="endpoint-heading"><span class="endpoint-dot start-dot"></span><strong>START</strong><span id="start-coordinate-label">Not set</span></div>
+          <div class="coordinate-inputs"><label>Latitude °<input id="route-start-lat" type="number" min="-90" max="90" step="0.0001" placeholder="-5.40"></label><label>Longitude °<input id="route-start-lon" type="number" min="-180" max="180" step="0.0001" placeholder="137.80"></label></div>
+          <button class="endpoint-pick" type="button" data-route-pick="start">Pick start on a map</button>
+        </div>
+        <div class="route-endpoint" data-endpoint-card="end">
+          <div class="endpoint-heading"><span class="endpoint-dot end-dot"></span><strong>DESTINATION</strong><span id="end-coordinate-label">Not set</span></div>
+          <div class="coordinate-inputs"><label>Latitude °<input id="route-end-lat" type="number" min="-90" max="90" step="0.0001" placeholder="18.44"></label><label>Longitude °<input id="route-end-lon" type="number" min="-180" max="180" step="0.0001" placeholder="77.45"></label></div>
+          <button class="endpoint-pick" type="button" data-route-pick="end">Pick destination on a map</button>
+        </div>
+        <button id="show-global-map" class="global-map-button" type="button">Show whole Mars in 2D map</button><button id="clear-route-button" class="global-map-button" type="button">Clear endpoints</button>
+        <label class="route-mode-label" for="route-mode-select">ROUTE PRIORITY</label>
+        <select id="route-mode-select" aria-label="Route mode"><option value="balanced">Balanced</option><option value="safest">Safest</option><option value="fastest">Fastest</option></select>
+        <label class="vision-toggle" for="route-vision-toggle"><input id="route-vision-toggle" type="checkbox"><span><strong>Experimental Jezero image + terrain layer</strong><small>Soft A* cost only · weak-label prototype</small></span></label>
+        <button id="route-plan-button" type="button" disabled>Calculate route</button>
+        <div class="terrain-legend" aria-label="Terrain traversability classes">
+          <div class="legend-heading">TERRAIN CLASS · COST 0–1</div>
+          <div class="terrain-class-row"><span class="terrain-swatch swatch-impassable"></span><strong>Impassable</strong><small>Mapped dune/crater zone or slope over selected limit</small></div>
+          <div class="terrain-class-row"><span class="terrain-swatch swatch-high"></span><strong>High</strong><small>Cost ≥ 0.67</small></div>
+          <div class="terrain-class-row"><span class="terrain-swatch swatch-caution"></span><strong>Caution</strong><small>Cost 0.33–0.67</small></div>
+          <div class="terrain-class-row"><span class="terrain-swatch swatch-safe"></span><strong>Safe</strong><small>Cost &lt; 0.33</small></div>
+          <div class="terrain-class-row"><span class="terrain-swatch swatch-unknown"></span><strong>Unknown</strong><small>Incomplete 3×3 DEM neighborhood</small></div>
+          <p class="legend-note">Route segments use these colors. Bands are initial global-map thresholds, not rover-certified limits.</p>
+          <p id="terrain-class-summary" class="terrain-class-summary">Route class counts appear after planning.</p>
+        </div>
+        <p class="route-hint" id="route-hint">The planner prefers a covering HiRISE or CTX stereo DTM. If local stereo coverage is unavailable, it uses the global 10-degree Parquet grid at nominal approximately 1 km resolution.</p>
+      </section>
+      <section class="section-card mission-card" id="mission-panel" hidden>
+        <div class="section-kicker">MISSION WORKSPACE</div><h2>Mission Planner</h2>
+        <p>Plan a traverse around the selected area. Mission constraints and resource estimates will be connected here as the planning workflow is implemented.</p>
+        <div class="planner-steps"><div><span>01</span><strong>Choose an area</strong><small>Inspect a landing or traverse region on the map.</small></div><div><span>02</span><strong>Set objectives</strong><small>Define a destination, route priorities, and mission limits.</small></div><div><span>03</span><strong>Review the plan</strong><small>Compare routes and available terrain data.</small></div></div>
+        <button type="button" class="card-action" data-open-view="route">Open route planning <span>↗</span></button>
+      </section>
+      <section class="section-card assistant-card" id="assistant-panel" hidden>
+        <div class="assistant-symbol">✧</div><div class="section-kicker">MARSWALK ASSISTANT</div><h2>AI Help</h2>
+        <p>Ask for plain-language explanations of the selected location, map layers, or route results. The LLM connection will be added here.</p>
+        <div class="assistant-status"><span class="status-dot status-dot-muted"></span>Assistant service not connected yet</div>
+        <div class="assistant-example"><span>EXAMPLE QUESTIONS</span><p>What does this slope value mean?</p><p>Why does the route avoid this area?</p><p>Which map layer am I looking at?</p></div>
+      </section>
+      <section class="section-card ar-card" id="ar-panel" hidden>
+        <div class="section-kicker">3D / AR ENGINE</div><h2>Mars in 3D</h2>
+        <p>Explore the interactive Mars globe. Unreal Engine, phone AR, and controller support are planned for a later build.</p>
+        <div class="engine-preview"><div class="engine-orbit"><span></span></div><div><strong>Interactive globe</strong><small>Available now · drag to rotate</small></div></div>
+        <div class="engine-roadmap"><span>PLANNED</span><p>Unreal Engine scene</p><p>Phone AR viewing</p><p>Controller input</p></div>
+        <button type="button" class="card-action" data-open-view="explore">Back to surface explorer <span>↗</span></button>
+      </section>
+        </div>
+      </main>
     </div>
 
     <script type="module" src="./js/map.js"></script>

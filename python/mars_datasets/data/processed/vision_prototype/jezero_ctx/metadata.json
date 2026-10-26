@@ -1,0 +1,39 @@
+{
+  "region": "Jezero crater",
+  "image_source": "https://astrogeo-ard.s3-us-west-2.amazonaws.com/mars/mro/ctx/controlled/usgs/P18_007925_1987_XN_18N282W__P19_008650_1987_XI_18N282W/P18_007925_1987_XN_18N282W__P19_008650_1987_XI_18N282W_orthoimage.tif",
+  "image_path": "C:\\Users\\Harsh Goel\\Downloads\\MarsWalk\\python\\mars_datasets\\data\\raw\\imagery\\ctx_jezero_P18_007925_1987_XN_18N282W__P19_008650_1987_XI_18N282W_orthoimage.tif",
+  "dem_path": "C:\\Users\\Harsh Goel\\Downloads\\MarsWalk\\python\\mars_datasets\\data\\raw\\dem\\local_dtms\\ctx_jezero_P18_007925_1987_XN_18N282W__P19_008650_1987_XI_18N282W_dtm.tif",
+  "dem_crs_wkt": "PROJCS[\"Mars (2015) - Sphere / Ocentric / Equirectangular, clon = 0\",GEOGCS[\"Mars (2015) - Sphere / Ocentric\",DATUM[\"Mars (2015) - Sphere\",SPHEROID[\"Mars (2015) - Sphere\",3396190,0,AUTHORITY[\"IAU\",\"49900\"]],AUTHORITY[\"IAU\",\"49900\"]],PRIMEM[\"Reference Meridian\",0,AUTHORITY[\"IAU\",\"49900\"]],UNIT[\"degree\",0.0174532925199433,AUTHORITY[\"EPSG\",\"9122\"]],AUTHORITY[\"IAU\",\"49900\"]],PROJECTION[\"Equirectangular\"],PARAMETER[\"standard_parallel_1\",0],PARAMETER[\"central_meridian\",0],PARAMETER[\"false_easting\",0],PARAMETER[\"false_northing\",0],UNIT[\"metre\",1,AUTHORITY[\"EPSG\",\"9001\"]],AXIS[\"Easting\",EAST],AXIS[\"Northing\",NORTH],AUTHORITY[\"IAU\",\"49910\"]]",
+  "dem_transform": [
+    20.162955124498982,
+    0.0,
+    4577133.445008798,
+    0.0,
+    -20.162955124498982,
+    1146178.5021103406
+  ],
+  "dem_resolution_map_m": [
+    20.162955124498982,
+    20.162955124498982
+  ],
+  "patch_size_pixels": 256,
+  "patch_grid_is_aligned_to": "local CTX stereo DTM; approximately 20 m posting",
+  "class_ids": {
+    "0": "terrain_not_flagged (not a safety label)",
+    "1": "steep_slope_proxy",
+    "2": "high_roughness_proxy",
+    "3": "mapped_dune",
+    "255": "ignore_or_nodata"
+  },
+  "weak_label_rules": {
+    "steep_slope_proxy": "derived slope >= 15.0 degrees",
+    "high_roughness_proxy": "3x3 elevation max-min >= 8.0 m",
+    "mapped_dune": "rasterized dunes_equatorial polygons from routing_layers.gpkg",
+    "priority_when_labels_overlap": "mapped dune, then steep slope, then roughness"
+  },
+  "mapped_dune_polygons_intersecting_dtm": 0,
+  "label_warning": "These are weak labels from existing map/DTM rules. Class 0 means not flagged by those rules, not proven safe. Inspect QA overlays and add human-reviewed labels before training/evaluating a model.",
+  "training_warning": "This CTX/DTM-aligned prototype does not include AI4Mars rover-camera labels; those images have a different camera scale and viewpoint.",
+  "patch_count": 88,
+  "qa_overlay_count": 12
+}

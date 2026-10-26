@@ -9,37 +9,42 @@ const projectPythonExe = path.join(workspaceRoot, "scripts", ".venv", "Scripts",
 // Prefer the project's installed GIS environment; an inherited MARS_PYTHON may point
 // at an unrelated runtime without pandas/pyarrow.
 const pythonExe = fs.existsSync(projectPythonExe) ? projectPythonExe : (process.env.MARS_PYTHON || projectPythonExe);
-const plannerScript = path.join(workspaceRoot, "scripts", "global_tile_route_planner.py");
+const plannerScript = path.join(workspaceRoot, "scripts", "adaptive_route_planner.py");
 const MAX_INPUT_BYTES = 16 * 1024;
 const MAX_OUTPUT_BYTES = 5 * 1024 * 1024;
-const TIMEOUT_MS = 90_000;
+const TIMEOUT_MS = 300_000;
 
 router.get("/status", (_req, res) => {
-  const catalogPath = path.join(workspaceRoot, "data", "processed", "feature_store", "global_tiles", "tiles_catalog.csv");
-  let statuses = [];
+  const catalogPath = path.join(workspaceRoot, "data", "catalog", "global_tile_catalog.csv");
+  let tiles = [];
   try {
-    statuses = fs.readFileSync(catalogPath, "utf8").trim().split(/\r?\n/).slice(1)
-      .filter(Boolean).map((line) => line.split(",")[5]);
+    tiles = fs.readFileSync(catalogPath, "utf8").trim().split(/\r?\n/).slice(1)
+      .filter(Boolean).map((line) => {
+        const columns = line.split(",");
+        return { status: columns[5], parquetPath: columns[6] };
+      });
   } catch (error) {
-    return res.status(503).json({ planner: "global_tile_route_planner.py", status: "unavailable", error: "Global tile catalog is missing or unreadable." });
+    return res.status(503).json({ planner: "adaptive_route_planner.py", status: "unavailable", error: "Global tile catalog is missing or unreadable." });
   }
-  const complete = statuses.filter((status) => status === "complete").length;
+  const catalogComplete = tiles.filter((tile) => tile.status === "complete").length;
+  const complete = tiles.filter((tile) => tile.status === "complete" && tile.parquetPath &&
+    fs.existsSync(path.resolve(workspaceRoot, tile.parquetPath.replace(/[\\/]/g, path.sep)))).length;
   res.json({
-    planner: "global_tile_route_planner.py",
-    data: "global 10-degree Parquet tiles",
-    status: complete === 648 ? "complete" : complete > 0 ? "partial" : "unavailable",
+    planner: "adaptive_route_planner.py",
+    data: "local HiRISE/CTX stereo DTMs with global 10-degree Parquet fallback (nominal approximately 1 km)",
+    status: complete === 648 && tiles.length === 648 ? "complete" : complete > 0 ? "partial" : "unavailable",
     complete_tiles: complete,
-    total_tiles: statuses.length,
-    remaining_tiles: Math.max(0, statuses.length - complete),
+    catalog_complete_tiles: catalogComplete,
+    total_tiles: tiles.length,
+    remaining_tiles: Math.max(0, tiles.length - complete),
   });
 });
-
 router.post("/", (req, res) => {
   if (!fs.existsSync(pythonExe)) {
     return res.status(503).json({ error: "The configured Mars Python interpreter was not found.", python: pythonExe });
   }
   if (!fs.existsSync(plannerScript)) {
-    return res.status(503).json({ error: "The global-tile route planner script was not found.", script: plannerScript });
+    return res.status(503).json({ error: "The adaptive route planner script was not found.", script: plannerScript });
   }
   const payload = req.body;
   if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
@@ -56,7 +61,7 @@ router.post("/", (req, res) => {
   let settled = false;
   const timer = setTimeout(() => {
     child.kill();
-    finish(504, { error: "Route calculation exceeded the 90 second limit." });
+    finish(504, { error: "Route calculation exceeded the 5 minute limit." });
   }, TIMEOUT_MS);
   const finish = (status, result) => {
     if (settled) return;

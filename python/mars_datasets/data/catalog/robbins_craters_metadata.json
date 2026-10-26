@@ -1,0 +1,22 @@
+{
+  "source_file": "data/raw/craters/robbins_craters.geojson",
+  "output_file": "data/processed/vectors/robbins_craters.csv",
+  "feature_count": 384343,
+  "geometry_type": "Point",
+  "coordinate_columns": {
+    "longitude_east_deg": "degrees east, as supplied",
+    "latitude_deg": "degrees north, as supplied"
+  },
+  "properties": {
+    "crater_id": "crater identifier",
+    "diameter_km": "diameter in km as supplied"
+  },
+  "bbox_lon_lat": [
+    -179.997,
+    -86.7,
+    179.997,
+    85.702
+  ],
+  "crs": "Source GeoJSON coordinate reference not inferred here; verify source metadata before spatial overlay.",
+  "processing": "Flattened point coordinates and selected source properties. Raw GeoJSON retained unchanged. No imputed rim heights or hazard labels."
+}

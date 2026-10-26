@@ -1,0 +1,14 @@
+schema_version: 1
+profile_name: example_mission
+source: null
+values:
+  crewed: null
+  max_sol_duration: null
+  energy_reserve_fraction: null
+  radiation_budget_msv: null
+  oxygen_budget_kg: null
+  preferred_route_mode: safest
+  max_allowable_slope_deg: null
+  max_slip_pct: null
+  dust_opacity_tau: null
+

@@ -1,0 +1,28 @@
+{
+  "description": "Locally cached USGS analysis-ready Mars stereo DTMs used by MarsWalk adaptive route planning.",
+  "catalog_api": "https://stac.astrogeology.usgs.gov/api",
+  "products": [
+    {
+      "id": "P18_007925_1987_XN_18N282W__P19_008650_1987_XI_18N282W",
+      "instrument": "CTX",
+      "collection": "mro_ctx_controlled_usgs_dtms",
+      "native_posting_m": 20.162955,
+      "bbox_lonlat": [77.212811, 17.757789, 77.905977, 19.342308],
+      "local_file": "ctx_jezero_P18_007925_1987_XN_18N282W__P19_008650_1987_XI_18N282W_dtm.tif",
+      "bytes": 18114156,
+      "purpose": "Covers the route endpoints shown in the current Jezero map view; local fallback when no HiRISE DTM covers the corridor.",
+      "asset": "https://astrogeo-ard.s3-us-west-2.amazonaws.com/mars/mro/ctx/controlled/usgs/P18_007925_1987_XN_18N282W__P19_008650_1987_XI_18N282W/P18_007925_1987_XN_18N282W__P19_008650_1987_XI_18N282W_dtm.tif"
+    },
+    {
+      "id": "DTEEC_002387_1985_003798_1985_A01",
+      "instrument": "HiRISE",
+      "collection": "mro_hirise_socet_dtms",
+      "native_posting_m": 1.019625,
+      "bbox_lonlat": [77.3441, 18.3923, 77.4661, 18.5886],
+      "local_file": "hirise_jezero_DTEEC_002387_1985_003798_1985_A01_dtm.tif",
+      "bytes": 144066483,
+      "purpose": "Meter-posting Jezero stereo DTM pilot; does not cover the current screenshot endpoints.",
+      "asset": "https://astrogeo-ard.s3-us-west-2.amazonaws.com/mars/mro/hirise/controlled/dtm/PSP_002387_1985_PSP_003798_1985/DTEEC_002387_1985_003798_1985_A01.tif"
+    }
+  ]
+}

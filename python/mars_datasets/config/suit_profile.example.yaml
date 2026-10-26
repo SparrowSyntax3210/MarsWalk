@@ -1,0 +1,13 @@
+schema_version: 1
+profile_name: example_suit
+source: null
+units: SI
+values:
+  oxygen_consumption_kg_per_sol: null
+  radiation_limit_msv_per_sol: null
+  thermal_operating_min_c: null
+  thermal_operating_max_c: null
+  pressure_operating_min_pa: null
+  pressure_operating_max_pa: null
+  dust_limit_tau: null
+

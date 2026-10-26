@@ -1,0 +1,19 @@
+factor_id,factor_name,unit,factor_type,source_dataset,preprocessing,status,uncertainty
+elevation_m,surface elevation,m,raster,hrsc_mola_dem,Read DEM metadata; align to planning grid,available_raw,source metadata/vertical datum pending
+slope_deg,terrain slope,degree,derived_raster,hrsc_mola_dem,Derive from DEM with geodesic/map-aware gradient,not_preprocessed,resolution and algorithm affect result
+aspect_deg,terrain aspect,degree,derived_raster,hrsc_mola_dem,Derive from DEM; mark flat cells separately,not_preprocessed,aspect undefined on flat cells
+roughness_m,local terrain roughness,m,derived_raster,hrsc_mola_dem,Windowed elevation range/standard deviation at stated scale,not_preprocessed,scale dependent
+crater_diameter_km,crater diameter,km,vector_attribute,robbins_craters,Use source property; output CSV prepared,raw_and_csv_prepared,catalogue completeness and uncertainty from source
+crater_distance_km,distance to crater feature,km,derived_raster,robbins_craters,Spatial index then nearest-feature distance/buffer,not_preprocessed,point-center distance is not rim distance
+geology_unit,mapped geologic unit,category,vector/raster,sim3292_geology,Extract authoritative GIS layer; reproject and rasterize IDs,raw_archive_only,unit scale and map uncertainty
+dune_presence,mapped dune area membership,boolean/category,vector/raster,mgd3_dunes,Extract regional GIS; validate coverage; rasterize footprints,raw_archives_only,absence outside mapped coverage is unknown
+dune_distance_km,distance to mapped dunes,km,derived_raster,mgd3_dunes,Spatial index then distance transform,not_preprocessed,coverage varies by product
+thermal_inertia,surface thermal inertia,product units,raster,tes_thermal_inertia,Decode native labels/layout; convert and align,raw_native_format,"coarse proxy, not direct traction"
+ice_consistency,subsurface ice consistency,index,raster,swim_ice_products,Acquire SWIM product; retain footprint/nodata,not_downloaded,not a direct ice truth; regional coverage
+air_temperature,atmospheric temperature,K,model_grid/query,mars_climate_database,Use MCD package/interface and cache by location/season/local time,mcd_archive_downloaded_not_extracted,modelled climatology/scenario dependent
+air_pressure,surface/atmospheric pressure,Pa,model_grid/query,mars_climate_database,Use MCD interface; preserve altitude and scenario,mcd_archive_downloaded_not_extracted,modelled; height datum matters
+wind_speed,near-surface wind,m/s,model_grid/query,mars_climate_database,Use MCD wind components; derive magnitude only with documented level,mcd_archive_downloaded_not_extracted,"modelled, not a real-time forecast"
+radiation_dose,surface radiation dose,mSv or source units,observation/model,msl_rad_sample; mars_odyssey_visual,Need numeric calibrated spatial product/model; rover sample not global,not_available_as_numeric_global_layer,do not derive numeric values from JPEG colors
+terrain_class_probabilities,image-derived terrain classes,probability,model_output,ai4mars_merged,Train segmentation model on matched images/masks,not_preprocessed,rover imagery domain; generalization limited
+energy_cost,vehicle energy per cell,Wh,derived_cost,vehicle_profile,Physics/engineering model calibrated to vehicle,blocked_profile_nulls,requires validated vehicle parameters
+slip_risk,wheel slip risk,probability or percent,derived/model,ai4mars_merged; surface proxies,Calibrated terramechanics model or labeled wheel/drive telemetry,not_available_as_validated_model,thermal inertia/class labels alone do not provide slip truth
