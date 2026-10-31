@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#100b08" />
-    <meta name="description" content="MarsWalk — explore the surface of Jezero Crater." />
+    <meta name="description" content="MarsWalk — read orbital terrain data, plan a traverse across Mars, and walk the surface of Jezero Crater." />
     <title>MarsWalk — Explore Mars</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -20,44 +20,367 @@
     </script>
   </head>
   <body>
+    <a class="skip-link" href="#chapter-planet">Skip to content</a>
+
+    <!--
+      The planet is a single object shared between the hero and chapter 01, so
+      it lives on one viewport-fixed canvas outside .landing. That is what lets
+      it fly out of the hero and dock into the chapter 01 slot as one continuous
+      model, rather than one planet fading out while a second fades in.
+      Both layers sit on negative z-index, so all page content paints over them.
+    -->
+    <div class="hero-backdrop" aria-hidden="true"><span class="planet-glow"></span></div>
+    <canvas id="planet-flight" aria-hidden="true"></canvas>
+
     <main class="landing">
-      <div class="landing-screen" id="landing-screen">
-        <div class="scene" aria-hidden="true">
-          <div class="planet-glow"></div>
-          <canvas id="mars-scene"></canvas>
+      <!-- ================= HERO ================= -->
+      <div class="hero-track">
+        <div class="landing-screen" id="landing-screen">
+          <div class="shade" aria-hidden="true"></div>
+
+          <header class="topbar">
+            <a class="brand" href="./" aria-label="MarsWalk home">
+              <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+              <span class="brand-name">MARS<span>WALK</span></span>
+            </a>
+            <div class="topline" aria-hidden="true"></div>
+            <span class="top-index">FIELD SYSTEMS <b>01</b></span>
+          </header>
+
+          <section class="hero-copy" aria-labelledby="hero-title">
+            <div class="hero-copy-inner">
+              <p class="eyebrow"><span class="eyebrow-dot"></span> JEZERO CRATER · MARS</p>
+              <h1 id="hero-title">MARS</h1>
+              <p class="hero-subtitle">A new world to explore.</p>
+              <a class="explore-button" href="./map.html">
+                <span>Explore surface</span>
+                <span class="button-arrow" aria-hidden="true">↗</span>
+              </a>
+            </div>
+          </section>
+
+          <footer class="bottom-bar">
+            <div class="location-note"><span class="status-ring"></span><span>JEZERO CRATER</span><span class="note-divider">/</span><span>18.4° N&nbsp; 77.7° E</span></div>
+            <div class="model-credit">MARS MODEL <span>NASA / JPL-CALTECH</span></div>
+            <button class="motion-toggle" id="motion-toggle" type="button" aria-pressed="false">
+              <span class="motion-icon" aria-hidden="true">Ⅱ</span><span>Pause rotation</span>
+            </button>
+          </footer>
+
+          <div class="scroll-cue" id="scroll-cue" aria-hidden="true"><span></span> SCROLL TO EXPLORE</div>
+          <p class="loading-note" id="loading-note" role="status">Preparing Mars surface…</p>
         </div>
-        <div class="shade" aria-hidden="true"></div>
-
-        <header class="topbar">
-          <a class="brand" href="./" aria-label="MarsWalk home">
-            <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
-            <span class="brand-name">MARS<span>WALK</span></span>
-          </a>
-          <div class="topline" aria-hidden="true"></div>
-          <span class="top-index">FIELD SYSTEMS <b>01</b></span>
-        </header>
-
-        <section class="hero-copy" aria-labelledby="hero-title">
-          <p class="eyebrow"><span class="eyebrow-dot"></span> JEZERO CRATER · MARS</p>
-          <h1 id="hero-title">MARS</h1>
-          <p class="hero-subtitle">A new world to explore.</p>
-          <a class="explore-button" href="./map.html">
-            <span>Explore surface</span>
-            <span class="button-arrow" aria-hidden="true">↗</span>
-          </a>
-        </section>
-
-        <footer class="bottom-bar">
-          <div class="location-note"><span class="status-ring"></span><span>JEZERO CRATER</span><span class="note-divider">/</span><span>18.4° N&nbsp; 77.7° E</span></div>
-          <div class="model-credit">MARS MODEL <span>NASA / JPL-CALTECH</span></div>
-          <button class="motion-toggle" id="motion-toggle" type="button" aria-pressed="false">
-            <span class="motion-icon" aria-hidden="true">Ⅱ</span><span>Pause rotation</span>
-          </button>
-        </footer>
-        <div class="scroll-cue" id="scroll-cue" aria-hidden="true"><span></span> SCROLL TO EXPLORE</div>
-        <p class="loading-note" id="loading-note" role="status">Preparing Mars surface…</p>
       </div>
+
+      <!-- ================= 01 · THE PLANET ================= -->
+      <section class="chapter" id="chapter-planet" aria-labelledby="planet-title">
+        <p class="chapter-rail"><span class="rail-dot"></span><b>01</b><span class="rail-line"></span>The planet</p>
+
+        <div class="world-grid">
+          <div class="world-copy">
+            <h2 id="planet-title" data-reveal>A world shaped by<br />time, terrain &amp; discovery.</h2>
+            <p class="lede" data-reveal>
+              MarsWalk reads the same orbital products mission planners use — MOLA and CTX stereo
+              elevation, USGS geologic mapping, TES surface properties — and brings them onto one
+              surface you can measure, route across and stand on.
+            </p>
+            <dl class="stat-strip" data-reveal>
+              <div><dt>Equatorial diameter</dt><dd>6,792 km</dd></div>
+              <div><dt>Mean surface temp</dt><dd>−63 °C</dd></div>
+              <div><dt>One sol</dt><dd>24h 37m</dd></div>
+              <div><dt>Surface gravity</dt><dd>3.72 m/s²</dd></div>
+            </dl>
+          </div>
+
+          <!-- Dock for the hero planet. Intentionally has no canvas of its
+               own: it only reserves the space the flying planet lands in. -->
+          <div class="world-globe" id="planet-dock">
+            <span class="globe-annotation" data-reveal><i></i>Jezero Crater · 18.4° N 77.7° E</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= 02 · FROM A PLANET TO A PLACE ================= -->
+      <section class="chapter" id="chapter-place" aria-labelledby="place-title">
+        <p class="chapter-rail"><span class="rail-dot"></span><b>02</b><span class="rail-line"></span>Scale</p>
+
+        <div class="chapter-head">
+          <h2 id="place-title" data-reveal>From a planet to a place.</h2>
+          <p class="lede" data-reveal>
+            Start at the whole globe, narrow to a landing site, then to the ground under a single
+            footstep. Every named place on Mars is searchable from the first click.
+          </p>
+        </div>
+
+        <div class="place-grid">
+          <article class="card" data-reveal>
+            <p class="card-label"><i></i>Choose your region</p>
+            <div class="region-visual">
+              <canvas id="globe-region" aria-hidden="true"></canvas>
+              <svg class="region-reticle" viewBox="0 0 300 300" aria-hidden="true">
+                <circle cx="150" cy="150" r="112" />
+                <path class="reticle-corner" d="M 30 70 V 30 H 70" />
+                <path class="reticle-corner" d="M 230 30 H 270 V 70" />
+                <path class="reticle-corner" d="M 270 230 V 270 H 230" />
+                <path class="reticle-corner" d="M 70 270 H 30 V 230" />
+                <line x1="150" y1="22" x2="150" y2="54" />
+                <line x1="150" y1="246" x2="150" y2="278" />
+                <line x1="22" y1="150" x2="54" y2="150" />
+                <line x1="246" y1="150" x2="278" y2="150" />
+              </svg>
+            </div>
+            <ul class="region-list">
+              <li class="chip">Gale</li>
+              <li class="chip">Gusev</li>
+              <li class="chip chip-caution"><i></i>Jezero</li>
+              <li class="chip">Elysium</li>
+              <li class="chip">Olympus Mons</li>
+              <li class="chip">+2,047 more</li>
+            </ul>
+          </article>
+
+          <article class="card place-feature" data-reveal>
+            <div class="place-head">
+              <div>
+                <h3>Jezero Crater</h3>
+                <p>Perseverance delta front · CTX stereo terrain</p>
+              </div>
+              <span class="chip chip-safe"><i></i>Local DTM</span>
+            </div>
+
+            <figure class="terrain-frame">
+              <img src="./data/jezero3d/jezero-traverse.jpg" alt="CTX orthoimage of the Jezero Crater delta front" loading="lazy" decoding="async" width="670" height="390" />
+              <svg class="route-overlay" viewBox="0 0 640 440" role="img" aria-label="An example traverse drawn across the Jezero delta front">
+                <defs>
+                  <linearGradient id="routeGradPlace" x1="0" y1="1" x2="1" y2="0">
+                    <stop offset="0%" stop-color="#43d6a3" />
+                    <stop offset="58%" stop-color="#ffd34f" />
+                    <stop offset="100%" stop-color="#ff9d42" />
+                  </linearGradient>
+                </defs>
+                <path class="route-casing" d="M 70 352 C 122 338 150 292 206 286 C 258 280 286 316 330 288 C 374 260 386 214 436 200 C 486 186 522 150 566 116" />
+                <path class="route-line" stroke="url(#routeGradPlace)" d="M 70 352 C 122 338 150 292 206 286 C 258 280 286 316 330 288 C 374 260 386 214 436 200 C 486 186 522 150 566 116" />
+                <circle class="route-node" cx="70" cy="352" r="7" fill="#43d6a3" />
+                <circle class="route-node" cx="566" cy="116" r="7" fill="#ff9d42" />
+                <text class="route-tag" x="86" y="378">START</text>
+                <text class="route-tag" x="498" y="100">TARGET</text>
+              </svg>
+            </figure>
+
+            <p class="metric-bar">
+              <span>Footprint <b>40.6 × 93.2 km</b></span>
+              <span>Posting <b>~20 m</b></span>
+              <span>Relief <b>1,710 m</b></span>
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <!-- ================= 03 · ROUTE PLANNING ================= -->
+      <section class="chapter" id="chapter-route" aria-labelledby="route-title">
+        <p class="chapter-rail"><span class="rail-dot"></span><b>03</b><span class="rail-line"></span>Routing</p>
+
+        <div class="chapter-head">
+          <h2 id="route-title" data-reveal>Plan a route with the whole terrain in view.</h2>
+          <p class="lede" data-reveal>
+            An A* search over slope, height change, roughness and terrain semantics, with
+            cross-slope penalties applied and impassable cells removed before a single step is drawn.
+          </p>
+        </div>
+
+        <div class="route-grid">
+          <div class="route-column">
+            <article class="card" data-reveal>
+              <p class="card-label"><i></i>Terrain risk</p>
+              <h3>Every cell is scored, not assumed</h3>
+              <p>Slope, local relief and RMS roughness from a plane fit, classed safe, caution, high or impassable.</p>
+            </article>
+            <article class="card" data-reveal>
+              <p class="card-label"><i></i>Three priorities</p>
+              <h3>Compare the trade-off</h3>
+              <p>Safest, balanced and fastest are planned side by side so you pick the compromise instead of accepting one answer.</p>
+            </article>
+          </div>
+
+          <article class="card route-stage" data-reveal>
+            <ul class="route-legend">
+              <li class="chip chip-safe"><i></i>Safe</li>
+              <li class="chip chip-caution"><i></i>Caution</li>
+              <li class="chip" style="color: #ff873d"><i></i>High cost</li>
+            </ul>
+
+            <!-- Screen capture of the planner itself, not an illustration. -->
+            <figure class="terrain-frame terrain-capture">
+              <img src="./assets/hero-routes.jpeg" alt="The MarsWalk route planner with a traverse solved around Jampur crater over HiRISE and CTX imagery" loading="lazy" decoding="async" width="818" height="796" />
+            </figure>
+
+            <p class="metric-bar">
+              <span>Selected <b>38.43° N&nbsp; 81.07° W</b></span>
+              <span>Imagery <b>HiRISE / CTX</b></span>
+              <span>Zoom <b>Z 9</b></span>
+            </p>
+            <p class="caveat">
+              Captured from the planner at Jampur crater. Route cost settings are terrain-planning
+              proxies, not rover-certified limits.
+            </p>
+          </article>
+
+          <div class="route-column">
+            <article class="card" data-reveal>
+              <p class="card-label"><i></i>Dataset confidence</p>
+              <h3>You always know your source</h3>
+              <p>HiRISE and CTX stereo DTMs where they exist, a global 1 km grid everywhere else — and the panel names which one you got.</p>
+            </article>
+            <article class="card" data-reveal>
+              <p class="card-label"><i></i>Mission efficiency</p>
+              <h3>Measured against your limits</h3>
+              <p>Distance, drive hours, sols and energy are checked against the budget you enter, never against invented rover specs.</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= 04 · STEP ONTO THE SURFACE ================= -->
+      <section class="chapter" id="chapter-surface" aria-labelledby="surface-title">
+        <p class="chapter-rail"><span class="rail-dot"></span><b>04</b><span class="rail-line"></span>Surface</p>
+
+        <div class="surface-grid">
+          <div class="surface-visual" data-reveal>
+            <canvas id="globe-surface" aria-hidden="true"></canvas>
+            <svg class="scan-rings" viewBox="0 0 400 300" aria-hidden="true">
+              <ellipse cx="200" cy="150" rx="128" ry="128" />
+              <ellipse cx="200" cy="150" rx="152" ry="152" />
+              <ellipse cx="200" cy="150" rx="128" ry="42" />
+              <line x1="48" y1="150" x2="352" y2="150" />
+              <line x1="200" y1="0" x2="200" y2="300" />
+              <line class="scan-sweep" x1="200" y1="150" x2="200" y2="8" />
+            </svg>
+            <p class="surface-readout">WALKED 1,284 m · ELEV −2,412 m</p>
+          </div>
+
+          <div class="surface-copy">
+            <h2 id="surface-title" data-reveal>Step onto the surface.</h2>
+            <p class="lede" data-reveal>
+              The CTX stereo terrain becomes a mesh you can walk. Head tracking turns an ordinary
+              phone into a viewer for it.
+            </p>
+
+            <ol class="surface-steps" data-reveal>
+              <li>
+                <span class="step-index">01</span>
+                <h3>Walk the real elevation</h3>
+                <p>A 40.6 × 93.2 km Jezero mesh from ~20 m posting stereo terrain, with DTM gaps left as gaps instead of guessed.</p>
+              </li>
+              <li>
+                <span class="step-index">02</span>
+                <h3>Head-tracked stereo</h3>
+                <p>Split-screen rendering driven by device orientation, with recentre and a fullscreen headset mode.</p>
+              </li>
+              <li>
+                <span class="step-index">03</span>
+                <h3>Read the ground you stand on</h3>
+                <p>Slope, local relief, mapped geologic unit and solar geometry for any coordinate you select.</p>
+              </li>
+              <li>
+                <span class="step-index">04</span>
+                <h3>Mark what you see</h3>
+                <p>Draw hazard polygons over CTX imagery and save them as GeoJSON for later review.</p>
+              </li>
+            </ol>
+
+            <div class="surface-actions" data-reveal>
+              <a class="ghost-action" href="./jezero-3d.html"><span>Walk Jezero</span><span aria-hidden="true">↗</span></a>
+              <a class="ghost-action" href="./vision-review.html"><span>Annotate hazards</span><span aria-hidden="true">↗</span></a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= 05 · DESTINATION INTO A PLAN ================= -->
+      <section class="chapter" id="chapter-plan" aria-labelledby="plan-title">
+        <p class="chapter-rail"><span class="rail-dot"></span><b>05</b><span class="rail-line"></span>Mission</p>
+
+        <div class="plan-grid">
+          <div class="plan-copy">
+            <h2 id="plan-title" data-reveal>Turn a destination into a plan.</h2>
+            <p class="lede" data-reveal>
+              Three steps from a point on the globe to a traverse checked against your own
+              constraints — and a report you can take away.
+            </p>
+
+            <ol class="plan-steps" data-reveal>
+              <li>
+                <h3>Choose a destination</h3>
+                <p>Pick start and end on the 3D globe, the 2D map, or from the searchable place catalog.</p>
+              </li>
+              <li>
+                <h3>Set your mission profile</h3>
+                <p>Slope limit, average speed, drive hours per sol, energy budget and reserve — plus crew size and oxygen for crewed profiles.</p>
+              </li>
+              <li>
+                <h3>Review your options</h3>
+                <p>Three routes, each tested against your limits, with every exceeded constraint named in plain language.</p>
+              </li>
+            </ol>
+          </div>
+
+          <article class="card plan-panel" data-reveal>
+            <div class="plan-panel-head">
+              <strong>Jezero rim → Delta front</strong>
+              <span class="chip chip-caution"><i></i>Balanced</span>
+            </div>
+
+            <div class="plan-fields">
+              <div class="plan-field"><small>Slope limit</small><b>20°</b></div>
+              <div class="plan-field"><small>Avg speed</small><b>0.15 km/h</b></div>
+              <div class="plan-field"><small>Drive / sol</small><b>4 h</b></div>
+              <div class="plan-field"><small>Energy</small><b>100 kWh</b></div>
+              <div class="plan-field"><small>Reserve</small><b>20 %</b></div>
+              <div class="plan-field"><small>Profile</small><b>Crewed · 2</b></div>
+            </div>
+
+            <table class="plan-table">
+              <caption class="sr-only">Route options compared against the entered mission profile</caption>
+              <thead>
+                <tr><th scope="col">Priority</th><th scope="col">Distance</th><th scope="col">Sols*</th><th scope="col">Energy*</th><th scope="col">Max slope</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>Safest</td><td>3.02 km</td><td>5.0</td><td>3.0 kWh</td><td>11.4°</td></tr>
+                <tr data-state="selected"><td>Balanced</td><td>2.41 km</td><td>4.0</td><td>2.4 kWh</td><td>14.2°</td></tr>
+                <tr><td>Fastest</td><td>2.18 km</td><td>3.6</td><td>2.2 kWh</td><td>19.6°</td></tr>
+              </tbody>
+            </table>
+
+            <p class="caveat">
+              * Schedule and energy are calculated from the assumptions you enter. They are not
+              rover performance predictions.
+            </p>
+
+            <a class="solid-action" href="./map.html">
+              <span>Open the mission planner</span>
+              <span class="button-arrow" aria-hidden="true">↗</span>
+            </a>
+          </article>
+        </div>
+      </section>
+
+      <!-- ================= CLOSING ================= -->
+      <section class="closing" aria-labelledby="closing-title">
+        <h2 class="sr-only" id="closing-title">Start exploring</h2>
+        <p data-reveal>It is a world of places, histories, and possibilities <em>— waiting for the next explorers to take the first step.</em></p>
+        <a class="explore-button" href="./map.html" data-reveal>
+          <span>Explore surface</span>
+          <span class="button-arrow" aria-hidden="true">↗</span>
+        </a>
+      </section>
+
+      <footer class="footer-bar">
+        <span>MarsWalk · Field systems 01</span>
+        <span>Data — NASA / JPL-Caltech · USGS Astrogeology · Esri OnMars</span>
+        <a href="#chapter-planet">Back to top ↑</a>
+      </footer>
     </main>
+
     <script type="module" src="./js/home.js"></script>
   </body>
 </html>

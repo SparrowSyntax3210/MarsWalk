@@ -1,89 +1,1172 @@
+/* ============================================================
+   MarsWalk — landing page
+   1.  Design tokens
+   2.  Base, film grain, shared primitives
+   3.  Hero
+   4.  Chapter shell
+   5.  Chapter 01 — the planet
+   6.  Chapter 02 — from a planet to a place
+   7.  Chapter 03 — route planning
+   8.  Chapter 04 — step onto the surface
+   9.  Chapter 05 — destination into a plan
+   10. Closing + footer
+   11. Responsive
+   12. Reduced motion
+   ============================================================ */
+
+/* ---------- 1. Design tokens ---------- */
 :root {
   color-scheme: dark;
+
+  /* Surfaces */
+  --bg: #100b08;
+  --bg-deep: #0b0705;
+  --surface: linear-gradient(158deg, #1d150f, #140e0a);
+  --surface-raised: linear-gradient(158deg, #241a13, #17110c);
+  --surface-flat: #17110c;
+
+  /* Ink */
   --cream: #f2edda;
+  --text: #f2edda;
+  --text-dim: rgba(242, 237, 218, 0.64);
+  --text-faint: rgba(242, 237, 218, 0.42);
   --muted: rgba(242, 237, 218, 0.58);
+
+  /* Lines */
   --line: rgba(242, 237, 218, 0.43);
+  --border: rgba(242, 237, 218, 0.13);
+  --border-strong: rgba(242, 237, 218, 0.26);
+
+  /* Accents — mirrored from the app's terrain classes */
+  --rust: #c75d28;
+  --ember: #ff9d42;
+  --safe: #43d6a3;
+  --caution: #ffd34f;
+  --danger: #ff6b4a;
+
+  /* Type */
   --mono: "DM Mono", Consolas, monospace;
   --sans: "Manrope", Arial, sans-serif;
+  --fs-micro: 11px;
+  --fs-label: 12px;
+  --fs-body: 14px;
+  --fs-body-lg: clamp(15px, 1.2vw, 17px);
+  --fs-h3: clamp(17px, 1.6vw, 21px);
+  --fs-h2: clamp(27px, 4vw, 50px);
+  --fs-display: clamp(88px, 16vw, 218px);
+  --tracking-wide: 0.14em;
+
+  /* Glass
+     Translucent panel fills, warm-tinted to sit in the Mars palette rather
+     than the cold grey-blue most glass UI defaults to. Blur is applied only
+     to top-level panels — see the note on .card. */
+  --glass-fill: linear-gradient(158deg, rgba(48, 34, 24, 0.52), rgba(22, 16, 11, 0.38));
+  --glass-fill-raised: linear-gradient(158deg, rgba(60, 43, 30, 0.6), rgba(28, 20, 14, 0.46));
+  --glass-fill-inset: rgba(26, 19, 13, 0.46);
+  --glass-edge: rgba(242, 237, 218, 0.17);
+  /* Catches the light along the top edge, which is what sells the material. */
+  --glass-sheen: rgba(255, 247, 232, 0.14);
+  --glass-blur: blur(16px) saturate(1.3);
+  --glass-shadow: 0 16px 44px rgba(7, 4, 2, 0.4);
+
+  /* Shape + motion */
+  --radius: 14px;
+  --radius-sm: 9px;
+  --gutter: clamp(24px, 5.2vw, 82px);
+  --ease: cubic-bezier(0.22, 0.75, 0.2, 1);
 }
 
+/* ---------- 2. Base ---------- */
 * { box-sizing: border-box; }
-html, body { width: 100%; min-width: 320px; min-height: 100%; margin: 0; }
-body { overflow-x: hidden; overflow-y: auto; background: #100b08; color: var(--cream); font-family: var(--sans); }
-button, a { font: inherit; }
+
+html { scroll-behavior: smooth; }
+
+html, body {
+  width: 100%;
+  min-width: 320px;
+  margin: 0;
+}
+
+body {
+  overflow-x: clip;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: var(--fs-body);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+button, a, input, select { font: inherit; }
 a { color: inherit; }
+img, canvas, svg { display: block; max-width: 100%; }
 
-.landing { position: relative; width: 100%; height: 200svh; min-height: 1100px; background: #100b08; }
-.landing-screen { position: sticky; top: 0; isolation: isolate; width: 100%; height: 100svh; min-height: 520px; overflow: hidden; background: radial-gradient(ellipse at 50% 46%, #392016 0%, #1e120d 40%, #100b08 75%); }
-.scene, #mars-scene, .shade { position: absolute; inset: 0; width: 100%; height: 100%; }
-.scene { z-index: -2; overflow: hidden; }
-#mars-scene { display: block; }
-.planet-glow { position: absolute; z-index: -1; left: 50%; top: 56%; width: min(72vw, 940px); aspect-ratio: 1; transform: translate(-50%, -50%); border-radius: 50%; background: #c75d28; filter: blur(100px); opacity: .23; }
-.shade { z-index: -1; pointer-events: none; background: linear-gradient(90deg, rgba(12, 8, 6, .38), transparent 38%, transparent 65%, rgba(12, 8, 6, .26)), linear-gradient(180deg, rgba(10, 7, 5, .36), transparent 22%, transparent 65%, rgba(10, 7, 5, .62)); }
-.landing::after { position: absolute; z-index: 2; inset: 0; pointer-events: none; content: ""; opacity: .12; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.22'/%3E%3C/svg%3E"); }
+/* Atmosphere.
+   Glass is only legible when there is something behind it to refract. Outside
+   the hero the page sat on a flat #100b08, so a blurred panel there was
+   indistinguishable from a plain translucent one. These very soft warm blooms
+   are fixed to the viewport, so every section has gradient behind its panels
+   and the frosting actually registers. Sits below the hero backdrop (-2) and
+   the planet (-1), above the body fill. */
+body::before {
+  position: fixed;
+  z-index: -3;
+  inset: 0;
+  pointer-events: none;
+  content: "";
+  background:
+    radial-gradient(44vw 44vw at 10% 16%, rgba(199, 93, 40, 0.17), transparent 70%),
+    radial-gradient(40vw 40vw at 92% 56%, rgba(255, 157, 66, 0.11), transparent 72%),
+    radial-gradient(54vw 54vw at 46% 106%, rgba(150, 64, 32, 0.16), transparent 70%);
+}
 
-.topbar { position: absolute; z-index: 3; top: 0; left: 0; display: flex; align-items: center; gap: 28px; width: 100%; padding: 34px clamp(24px, 5.2vw, 82px); }
-.brand { display: inline-flex; flex: 0 0 auto; align-items: center; gap: 13px; text-decoration: none; }
-.brand-mark { position: relative; display: grid; width: 31px; height: 31px; grid-template: repeat(2, 1fr) / repeat(2, 1fr); transform: rotate(45deg) scale(.78); }
+/* Film grain over the whole page. */
+body::after {
+  position: fixed;
+  z-index: 60;
+  inset: 0;
+  pointer-events: none;
+  content: "";
+  opacity: 0.1;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.22'/%3E%3C/svg%3E");
+}
+
+.skip-link {
+  position: absolute;
+  z-index: 80;
+  top: 10px;
+  left: 10px;
+  padding: 10px 16px;
+  border-radius: 999px;
+  background: var(--cream);
+  color: #21130d;
+  font-size: var(--fs-label);
+  font-weight: 700;
+  text-decoration: none;
+  transform: translateY(-160%);
+  transition: transform 0.2s var(--ease);
+}
+.skip-link:focus-visible { transform: translateY(0); }
+
+/* Transparent so the fixed planet canvas behind it shows through. The base
+   colour lives on <body> instead. */
+.landing {
+  position: relative;
+  width: 100%;
+  background: transparent;
+}
+
+/* ---- Shared planet layers ----
+   Negative z-index puts both of these above the <body> background but below
+   every in-flow element, so page copy always paints over the planet without
+   any section needing its own opaque fill. The backdrop carries the hero's
+   warm gradient, which used to live on .landing-screen — it had to move out
+   because .landing-screen is a sticky stacking context, and anything inside
+   it would paint over a page-level canvas and hide the planet. */
+.hero-backdrop {
+  position: fixed;
+  z-index: -2;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse at 50% 46%, #392016 0%, #1e120d 40%, #100b08 75%);
+  opacity: calc(1 - var(--hero-exit, 0) * 0.82);
+}
+
+#planet-flight {
+  position: fixed;
+  z-index: -1;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+/* Shared micro-label treatment. */
+.top-index,
+.eyebrow,
+.location-note,
+.model-credit,
+.motion-toggle,
+.loading-note,
+.chapter-rail,
+.card-label,
+.metric-bar,
+.chip,
+.stat-strip dt,
+.plan-field small,
+.plan-table th,
+.footer-bar {
+  font-family: var(--mono);
+  font-size: var(--fs-micro);
+  letter-spacing: var(--tracking-wide);
+}
+
+:is(a, button, [tabindex]):focus-visible {
+  outline: 2px solid var(--cream);
+  outline-offset: 4px;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* ---------- 3. Hero ---------- */
+/* Height minus the screen height is the pinned scroll range (~80svh). The
+   planet's flight begins a third of the way into that range and carries on
+   past the unpin, so the hero releases while the planet is still travelling
+   toward chapter 01 — that overlap is what ties the two sections together. */
+.hero-track {
+  position: relative;
+  width: 100%;
+  height: 180svh;
+  min-height: 1020px;
+}
+
+/* Transparent: the planet and the hero gradient are both behind this element
+   now, so a background here would occlude them. */
+.landing-screen {
+  position: sticky;
+  top: 0;
+  width: 100%;
+  height: 100svh;
+  min-height: 520px;
+  overflow: hidden;
+  background: transparent;
+}
+
+.shade {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* Bloom that rides along with the planet. JS writes the planet's live screen
+   rect into these variables each frame, so the glow stays locked to the model
+   all the way from the hero into the chapter 01 dock. */
+.planet-glow {
+  position: absolute;
+  top: var(--glow-y, 73%);
+  left: var(--glow-x, 50%);
+  width: var(--glow-d, 60vh);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: var(--rust);
+  filter: blur(100px);
+  opacity: calc(0.26 - var(--hero-exit, 0) * 0.06);
+  transform: translate(-50%, -50%);
+}
+
+.shade {
+  z-index: -1;
+  pointer-events: none;
+  background:
+    linear-gradient(90deg, rgba(12, 8, 6, 0.38), transparent 38%, transparent 65%, rgba(12, 8, 6, 0.26)),
+    linear-gradient(180deg, rgba(10, 7, 5, 0.36), transparent 22%, transparent 65%, rgba(10, 7, 5, 0.62));
+}
+
+.topbar {
+  position: absolute;
+  z-index: 3;
+  top: 0;
+  left: 0;
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  width: 100%;
+  padding: 34px var(--gutter);
+  opacity: 0.46;
+  transition: opacity 0.6s ease;
+}
+
+.brand {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 13px;
+  text-decoration: none;
+}
+.brand-mark {
+  position: relative;
+  display: grid;
+  width: 31px;
+  height: 31px;
+  grid-template: repeat(2, 1fr) / repeat(2, 1fr);
+  transform: rotate(45deg) scale(0.78);
+}
 .brand-mark i { display: block; margin: 2px; background: var(--cream); }
 .brand-mark i:nth-child(1), .brand-mark i:nth-child(4) { border-radius: 50%; }
-.brand-name { font-size: 13px; font-weight: 800; letter-spacing: .16em; }
-.brand-name span { margin-left: 5px; font-weight: 500; color: var(--muted); }
+.brand-name { font-size: 13px; font-weight: 800; letter-spacing: 0.16em; }
+.brand-name span { margin-left: 5px; color: var(--muted); font-weight: 500; }
+
 .topline { height: 1px; flex: 1; background: var(--line); }
-.top-index, .eyebrow, .location-note, .model-credit, .motion-toggle, .loading-note { font-family: var(--mono); font-size: 10px; letter-spacing: .12em; }
 .top-index { color: var(--muted); white-space: nowrap; }
 .top-index b { margin-left: 10px; color: var(--cream); font-weight: 400; }
 
-.hero-copy { position: absolute; z-index: 3; top: 50%; left: 50%; width: min(90vw, 900px); opacity: 0; pointer-events: none; transform: translate(-50%, -43%); text-align: center; transition: opacity .7s ease, top .9s cubic-bezier(.2,.75,.2,1), transform .7s ease; }
-.eyebrow { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 0 0 21px; color: rgba(242, 237, 218, .78); }
-.eyebrow-dot, .status-ring { display: inline-block; width: 8px; height: 8px; border: 1px solid var(--cream); border-radius: 50%; }
-.eyebrow-dot { background: var(--cream); box-shadow: 0 0 12px rgba(242, 237, 218, .72); }
-.hero-copy h1 { margin: 0; color: var(--cream); font-size: clamp(88px, 16vw, 218px); font-weight: 800; letter-spacing: -.09em; line-height: .86; text-indent: -.09em; text-shadow: 0 5px 55px rgba(16, 8, 4, .32); }
-.hero-subtitle { margin: 25px 0 30px; color: rgba(242, 237, 218, .76); font-size: clamp(13px, 1.5vw, 17px); font-weight: 500; letter-spacing: .06em; }
-.explore-button { display: inline-flex; min-width: 188px; align-items: center; justify-content: space-between; gap: 25px; padding: 14px 16px 14px 22px; border: 1px solid rgba(242, 237, 218, .9); border-radius: 999px; background: var(--cream); color: #21130d; font-size: 12px; font-weight: 700; text-decoration: none; transition: transform .25s ease, background .25s ease, box-shadow .25s ease; box-shadow: 0 8px 40px rgba(0, 0, 0, .2); }
-.explore-button:hover { transform: translateY(-3px); background: #fff8e9; box-shadow: 0 12px 48px rgba(0, 0, 0, .32); }
-.button-arrow { font-size: 16px; line-height: 1; }
-.explore-button:focus-visible, .motion-toggle:focus-visible, .brand:focus-visible { outline: 2px solid var(--cream); outline-offset: 5px; }
+.hero-copy {
+  position: absolute;
+  z-index: 3;
+  top: 50%;
+  left: 50%;
+  width: min(90vw, 900px);
+  opacity: 0;
+  pointer-events: none;
+  text-align: center;
+  transform: translate(-50%, -43%);
+  transition: opacity 0.7s ease, top 0.9s var(--ease), transform 0.7s ease;
+}
 
-.bottom-bar { position: absolute; z-index: 3; right: 0; bottom: 0; left: 0; display: flex; min-height: 88px; align-items: center; justify-content: space-between; gap: 20px; padding: 20px clamp(24px, 5.2vw, 82px); border-top: 1px solid rgba(242, 237, 218, .16); opacity: 0; transform: translateY(12px); transition: opacity .6s ease, transform .6s ease; }
-.location-note { display: flex; align-items: center; gap: 10px; color: rgba(242, 237, 218, .84); white-space: nowrap; }
-.status-ring { width: 12px; height: 12px; box-shadow: inset 0 0 0 3px #100b08; background: var(--cream); }
-.note-divider { color: rgba(242, 237, 218, .38); }
-.model-credit { color: rgba(242, 237, 218, .46); text-align: center; }
-.model-credit span { margin-left: 8px; color: rgba(242, 237, 218, .82); }
-.motion-toggle { display: inline-flex; align-items: center; gap: 8px; padding: 8px 0 8px 8px; border: 0; background: transparent; color: rgba(242, 237, 218, .82); cursor: pointer; }
-.motion-icon { display: inline-grid; width: 20px; height: 20px; place-items: center; border: 1px solid rgba(242, 237, 218, .4); border-radius: 50%; font-family: var(--sans); font-size: 10px; }
-.loading-note { position: absolute; z-index: 3; right: 50%; bottom: 38px; transform: translateX(50%); color: var(--muted); transition: opacity .3s ease; white-space: nowrap; }
+/* The intro reveal animates .hero-copy; the scroll exit animates this inner
+   wrapper. Keeping them on separate elements means the per-frame --hero-exit
+   value is not fighting the reveal's own opacity/transform transition.
+   The `translate` property composes with the parent's centring transform. */
+.hero-copy-inner {
+  opacity: clamp(0, calc(1 - var(--hero-exit, 0) * 1.7), 1);
+  translate: calc(var(--hero-exit, 0) * -13vw) calc(var(--hero-exit, 0) * -2vh);
+}
+/* Once the copy has faded, stop it swallowing clicks over the next chapter. */
+.landing-screen.is-exiting .hero-copy { pointer-events: none; }
+
+.eyebrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin: 0 0 21px;
+  color: rgba(242, 237, 218, 0.78);
+}
+.eyebrow-dot, .status-ring {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border: 1px solid var(--cream);
+  border-radius: 50%;
+}
+.eyebrow-dot { background: var(--cream); box-shadow: 0 0 12px rgba(242, 237, 218, 0.72); }
+
+.hero-copy h1 {
+  margin: 0;
+  color: var(--cream);
+  font-size: var(--fs-display);
+  font-weight: 800;
+  letter-spacing: -0.09em;
+  line-height: 0.86;
+  text-indent: -0.09em;
+  text-shadow: 0 5px 55px rgba(16, 8, 4, 0.32);
+}
+.hero-subtitle {
+  margin: 25px 0 30px;
+  color: rgba(242, 237, 218, 0.76);
+  font-size: clamp(13px, 1.5vw, 17px);
+  font-weight: 500;
+  letter-spacing: 0.06em;
+}
+
+.explore-button {
+  display: inline-flex;
+  min-width: 188px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 25px;
+  padding: 14px 16px 14px 22px;
+  border: 1px solid rgba(242, 237, 218, 0.9);
+  border-radius: 999px;
+  background: var(--cream);
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.2);
+  color: #21130d;
+  font-size: var(--fs-label);
+  font-weight: 700;
+  text-decoration: none;
+  transition: transform 0.25s ease, background 0.25s ease, box-shadow 0.25s ease;
+}
+.explore-button:hover {
+  background: #fff8e9;
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.32);
+  transform: translateY(-3px);
+}
+.button-arrow { font-size: 16px; line-height: 1; }
+
+.bottom-bar {
+  position: absolute;
+  z-index: 3;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  min-height: 88px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 20px var(--gutter);
+  border-top: 1px solid var(--glass-edge);
+  /* One of only two surfaces with the planet genuinely behind it, so the
+     frosting here is real refraction rather than a tinted overlay. */
+  background: linear-gradient(to top, rgba(22, 15, 10, 0.58), rgba(22, 15, 10, 0.3));
+  -webkit-backdrop-filter: blur(18px) saturate(1.25);
+  backdrop-filter: blur(18px) saturate(1.25);
+  opacity: 0;
+  transform: translateY(12px);
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+.location-note {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: rgba(242, 237, 218, 0.84);
+  white-space: nowrap;
+}
+.status-ring { width: 12px; height: 12px; background: var(--cream); box-shadow: inset 0 0 0 3px var(--bg); }
+.note-divider { color: rgba(242, 237, 218, 0.38); }
+.model-credit { color: rgba(242, 237, 218, 0.46); text-align: center; }
+.model-credit span { margin-left: 8px; color: rgba(242, 237, 218, 0.82); }
+
+.motion-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0 8px 8px;
+  border: 0;
+  background: transparent;
+  color: rgba(242, 237, 218, 0.82);
+  cursor: pointer;
+}
+.motion-icon {
+  display: inline-grid;
+  width: 20px;
+  height: 20px;
+  place-items: center;
+  border: 1px solid rgba(242, 237, 218, 0.4);
+  border-radius: 50%;
+  font-family: var(--sans);
+  font-size: 10px;
+}
+
+.loading-note {
+  position: absolute;
+  z-index: 3;
+  right: 50%;
+  bottom: 146px;
+  color: var(--muted);
+  white-space: nowrap;
+  transform: translateX(50%);
+  transition: opacity 0.3s ease;
+}
 .loading-note.is-hidden { opacity: 0; }
 .loading-note.is-error { color: #f1a17e; }
-.topbar { opacity: .46; transition: opacity .6s ease; }
+
+/* Sits clear of the bottom bar so it never collides with the model credit. */
+.scroll-cue {
+  position: absolute;
+  z-index: 3;
+  right: 50%;
+  bottom: 112px;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  color: rgba(242, 237, 218, 0.66);
+  font: var(--fs-micro) var(--mono);
+  letter-spacing: 0.17em;
+  white-space: nowrap;
+  transform: translateX(50%);
+  transition: opacity 0.35s ease;
+}
+.scroll-cue span {
+  display: block;
+  width: 1px;
+  height: 21px;
+  background: var(--cream);
+  transform-origin: top;
+  animation: scroll-pulse 1.45s ease-in-out infinite;
+}
+@keyframes scroll-pulse {
+  0%, 100% { opacity: 0.5; transform: scaleY(0.45); }
+  50% { opacity: 1; transform: scaleY(1); }
+}
+
 .landing-screen.is-revealed .topbar { opacity: 1; }
 .landing-screen.is-revealed .bottom-bar { opacity: 1; transform: translateY(0); }
-.landing-screen.is-revealed .hero-copy { top: 38%; opacity: 1; pointer-events: auto; transform: translate(-50%, -50%); }
-.scroll-cue { position: absolute; z-index: 3; right: 50%; bottom: 35px; display: flex; align-items: center; gap: 11px; color: rgba(242, 237, 218, .66); font: 9px var(--mono); letter-spacing: .17em; transform: translateX(50%); transition: opacity .35s ease; white-space: nowrap; }
-.scroll-cue span { display: block; width: 1px; height: 21px; background: var(--cream); transform-origin: top; animation: scroll-pulse 1.45s ease-in-out infinite; }
-.landing-screen.is-revealed .scroll-cue { opacity: 0; }
-@keyframes scroll-pulse { 0%, 100% { transform: scaleY(.45); opacity: .5; } 50% { transform: scaleY(1); opacity: 1; } }
+.landing-screen.is-revealed .hero-copy {
+  top: 27%;
+  opacity: 1;
+  pointer-events: auto;
+  transform: translate(-50%, -50%);
+}
+/* The cue hides on real scroll, not on the intro reveal. */
+.landing-screen.is-scrolled .scroll-cue { opacity: 0; }
+
+/* Hero chrome steps back as the planet clears frame, so the next chapter
+   arrives against empty sky rather than cutting over a live header. */
+.landing-screen.is-exiting .topbar { opacity: 0.16; }
+.landing-screen.is-exiting .bottom-bar { opacity: 0; transform: translateY(12px); }
+
+/* ---------- 4. Chapter shell ---------- */
+.chapter {
+  position: relative;
+  padding: clamp(72px, 9vw, 150px) var(--gutter);
+  border-top: 1px solid var(--border);
+}
+
+.chapter-rail {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 0 clamp(36px, 4.6vw, 64px);
+  color: var(--text-faint);
+  text-transform: uppercase;
+}
+.chapter-rail b { color: var(--ember); font-weight: 400; }
+.rail-dot {
+  width: 9px;
+  height: 9px;
+  flex: 0 0 auto;
+  border: 1px solid var(--ember);
+  border-radius: 50%;
+}
+.rail-line { width: clamp(28px, 6vw, 86px); height: 1px; background: var(--border-strong); }
+
+.chapter h2 {
+  margin: 0;
+  color: var(--cream);
+  font-size: var(--fs-h2);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.08;
+}
+.chapter h3 {
+  margin: 0;
+  color: var(--cream);
+  font-size: var(--fs-h3);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.25;
+}
+.lede {
+  max-width: 54ch;
+  margin: 20px 0 0;
+  color: var(--text-dim);
+  font-size: var(--fs-body-lg);
+  line-height: 1.7;
+}
+
+.chapter-head { max-width: 760px; margin: 0 auto clamp(40px, 5vw, 70px); text-align: center; }
+.chapter-head .lede { margin-inline: auto; }
+
+/* Scroll reveal. Gated on the .js class so a script failure cannot leave
+   the page permanently blank. */
+.js [data-reveal] {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.75s var(--ease), transform 0.75s var(--ease);
+}
+.is-visible [data-reveal],
+[data-reveal].is-visible { opacity: 1; transform: none; }
+.is-visible [data-reveal]:nth-child(2) { transition-delay: 0.08s; }
+.is-visible [data-reveal]:nth-child(3) { transition-delay: 0.16s; }
+.is-visible [data-reveal]:nth-child(4) { transition-delay: 0.24s; }
+.is-visible [data-reveal]:nth-child(5) { transition-delay: 0.32s; }
+
+/* Card primitive — the main glass surface.
+   backdrop-filter is deliberately confined to top-level panels like this one.
+   Anything nested inside (chips, plan fields, terrain frames) gets a
+   translucent fill only: a nested blur would re-blur its parent's already
+   blurred output, costing a second GPU pass for no visible gain. */
+.card {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  padding: 20px;
+  border: 1px solid var(--glass-edge);
+  border-radius: var(--radius);
+  background: var(--glass-fill);
+  box-shadow: var(--glass-shadow), inset 0 1px 0 var(--glass-sheen);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+}
+.card-label {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin: 0 0 14px;
+  color: var(--text-faint);
+  text-transform: uppercase;
+}
+.card-label i {
+  width: 6px;
+  height: 6px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--ember);
+}
+.card p { margin: 10px 0 0; color: var(--text-dim); font-size: 13px; line-height: 1.65; }
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 11px;
+  border: 1px solid var(--glass-edge);
+  border-radius: 999px;
+  /* Nested inside glass cards, so fill only — no second blur pass. */
+  background: rgba(242, 237, 218, 0.05);
+  box-shadow: inset 0 1px 0 rgba(255, 247, 232, 0.08);
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+.chip i { width: 6px; height: 6px; border-radius: 50%; background: currentcolor; }
+.chip-safe { color: var(--safe); }
+.chip-caution { color: var(--caution); }
+
+/* Ghost / pill actions */
+.ghost-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 18px;
+  border: 1px solid var(--glass-edge);
+  border-radius: 999px;
+  background: rgba(242, 237, 218, 0.06);
+  box-shadow: inset 0 1px 0 var(--glass-sheen);
+  -webkit-backdrop-filter: blur(12px) saturate(1.2);
+  backdrop-filter: blur(12px) saturate(1.2);
+  color: var(--cream);
+  font-size: var(--fs-label);
+  font-weight: 600;
+  text-decoration: none;
+  transition: background 0.25s ease, border-color 0.25s ease, transform 0.25s ease;
+}
+.ghost-action:hover {
+  border-color: var(--border-strong);
+  background: rgba(242, 237, 218, 0.13);
+  transform: translateY(-2px);
+}
+.ghost-action span:last-child { color: var(--ember); }
+
+.solid-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 15px 18px 15px 22px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--cream);
+  color: #21130d;
+  font-size: var(--fs-label);
+  font-weight: 700;
+  text-decoration: none;
+  transition: background 0.25s ease, transform 0.25s ease;
+}
+.solid-action:hover { background: #fff8e9; transform: translateY(-2px); }
+
+/* Terrain figure with route overlay */
+/* Translucent so the letterbox bars either side of the contained planner
+   capture read as part of the glass panel rather than as a black void. */
+.terrain-frame {
+  position: relative;
+  overflow: hidden;
+  margin: 0;
+  border: 1px solid var(--glass-edge);
+  border-radius: var(--radius-sm);
+  background: var(--glass-fill-inset);
+  box-shadow: inset 0 1px 0 rgba(255, 247, 232, 0.07);
+}
+/* jezero-traverse.jpg is pre-cropped to the valid interior of the CTX swath,
+   so it needs no overscan to hide nodata margins. */
+.terrain-frame img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 50% 50%;
+  filter: saturate(1.08) contrast(1.04);
+}
+.route-overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+.route-casing { fill: none; stroke: rgba(10, 6, 4, 0.55); stroke-width: 7; stroke-linecap: round; }
+.route-line {
+  fill: none;
+  stroke-width: 3.2;
+  stroke-linecap: round;
+}
+.js .route-line { stroke-dasharray: 1000; stroke-dashoffset: 1000; }
+.js .is-visible .route-line { animation: draw-route 2.1s var(--ease) forwards; }
+@keyframes draw-route { to { stroke-dashoffset: 0; } }
+.route-node { stroke: #0e0906; stroke-width: 2; }
+.route-tag {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  fill: var(--cream);
+}
+
+.metric-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 22px;
+  margin: 0;
+  padding: 14px 4px 0;
+  color: var(--text-faint);
+  text-transform: uppercase;
+}
+.metric-bar div { display: flex; gap: 8px; }
+.metric-bar b { color: var(--cream); font-weight: 400; }
+
+.caveat {
+  margin: 16px 0 0;
+  color: var(--text-faint);
+  font-family: var(--mono);
+  font-size: var(--fs-micro);
+  line-height: 1.7;
+}
+
+/* ---------- 5. Chapter 01 — the planet ---------- */
+.world-grid {
+  display: grid;
+  align-items: center;
+  gap: clamp(32px, 5vw, 72px);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 0.72fr);
+}
+
+.stat-strip {
+  display: grid;
+  margin: clamp(34px, 4vw, 54px) 0 0;
+  border: 1px solid var(--glass-edge);
+  border-radius: var(--radius-sm);
+  background: var(--glass-fill);
+  box-shadow: var(--glass-shadow), inset 0 1px 0 var(--glass-sheen);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  overflow: hidden;
+}
+.stat-strip > div { padding: 18px 16px; border-left: 1px solid var(--glass-edge); }
+.stat-strip > div:first-child { border-left: 0; }
+.stat-strip dt { margin: 0 0 9px; color: var(--text-faint); text-transform: uppercase; }
+.stat-strip dd {
+  margin: 0;
+  color: var(--cream);
+  font-size: clamp(16px, 1.7vw, 22px);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+/* Empty by design — this box only reserves the landing spot that the shared
+   hero planet flies into, and JS reads its rect as the dock target.
+   The width must be stated explicitly rather than left to grid stretch: the
+   box has no in-flow children, so anything that disables stretch (the auto
+   inline margins below, for one) would collapse it to zero and the planet
+   would dock at zero size. */
+.world-globe {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1;
+}
+/* Sits directly on the docked planet — the other surface that frosts something
+   real. Previously bare text over the globe, which was the weakest contrast
+   on the page; the glass pill fixes the legibility and the material at once. */
+.globe-annotation {
+  position: absolute;
+  top: 3%;
+  left: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 13px;
+  border: 1px solid var(--glass-edge);
+  border-radius: 999px;
+  background: rgba(24, 16, 11, 0.44);
+  box-shadow: inset 0 1px 0 var(--glass-sheen);
+  -webkit-backdrop-filter: blur(14px) saturate(1.2);
+  backdrop-filter: blur(14px) saturate(1.2);
+  color: var(--cream);
+  font-family: var(--mono);
+  font-size: var(--fs-micro);
+  letter-spacing: 0.1em;
+  white-space: nowrap;
+}
+/* The trailing hairline that used to tie this label to the globe is dropped:
+   with the glass pill it would be enclosed by the panel and read as a
+   dangling dash rather than a leader line. */
+.globe-annotation i {
+  width: 7px;
+  height: 7px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--ember);
+  box-shadow: 0 0 10px var(--ember);
+}
+
+/* ---------- 6. Chapter 02 — from a planet to a place ---------- */
+.place-grid {
+  display: grid;
+  gap: clamp(18px, 2.2vw, 28px);
+  grid-template-columns: minmax(0, 0.62fr) minmax(0, 1fr);
+}
+
+.region-visual {
+  position: relative;
+  display: grid;
+  flex: 1;
+  min-height: clamp(210px, 23vw, 290px);
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid var(--glass-edge);
+  border-radius: var(--radius-sm);
+  background: radial-gradient(ellipse at 50% 40%, rgba(58, 34, 22, 0.6), rgba(18, 12, 9, 0.42) 72%);
+  box-shadow: inset 0 1px 0 rgba(255, 247, 232, 0.07);
+}
+.region-visual canvas { width: 82%; height: 82%; }
+.region-reticle {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+.region-reticle circle,
+.region-reticle line,
+.region-reticle path {
+  fill: none;
+  stroke: rgba(242, 237, 218, 0.2);
+  stroke-width: 1;
+}
+.region-reticle .reticle-corner { stroke: var(--ember); stroke-width: 1.4; opacity: 0.7; }
+.region-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin: 14px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.place-feature { padding: 20px; }
+/* Aspect ratios match the route-overlay viewBoxes so the SVG fits with no distortion. */
+.place-feature .terrain-frame { aspect-ratio: 640 / 440; }
+.place-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+.place-head p { margin: 4px 0 0; color: var(--text-dim); font-size: 13px; }
+
+/* ---------- 7. Chapter 03 — route planning ---------- */
+.route-grid {
+  display: grid;
+  align-items: stretch;
+  gap: clamp(16px, 2vw, 24px);
+  grid-template-columns: minmax(0, 0.84fr) minmax(0, 1.32fr) minmax(0, 0.84fr);
+}
+.route-column { display: grid; gap: clamp(16px, 2vw, 24px); align-content: stretch; }
+.route-stage { padding: 18px; }
+.route-stage .terrain-frame { aspect-ratio: 640 / 400; }
+
+/* The planner capture is shown whole — its own interface chrome is the point —
+   so this frame takes the screenshot's aspect ratio instead of cropping it to
+   a letterbox, and the CTX colour grade is dropped so the UI keeps real colours. */
+.route-stage .terrain-capture { aspect-ratio: 818 / 796; }
+.terrain-capture img { object-fit: contain; filter: none; }
+
+/* The near-square capture makes the centre card tall, so the flanking cards
+   centre their copy instead of stacking it against the top edge. */
+@media (min-width: 1081px) {
+  .route-column .card { justify-content: center; }
+}
+.route-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 15px;
+  padding: 0;
+  list-style: none;
+}
+
+/* ---------- 8. Chapter 04 — step onto the surface ---------- */
+.surface-grid {
+  display: grid;
+  align-items: center;
+  gap: clamp(32px, 4.6vw, 70px);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 0.92fr);
+}
+
+.surface-visual {
+  position: relative;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  aspect-ratio: 4 / 3;
+  border: 1px solid var(--glass-edge);
+  border-radius: var(--radius);
+  background: radial-gradient(ellipse at 50% 46%, rgba(56, 33, 20, 0.58), rgba(18, 12, 8, 0.44) 74%);
+  box-shadow: var(--glass-shadow), inset 0 1px 0 var(--glass-sheen);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+}
+.surface-visual canvas { width: 86%; height: 86%; }
+.scan-rings { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.scan-rings ellipse, .scan-rings line, .scan-rings circle {
+  fill: none;
+  stroke: rgba(242, 237, 218, 0.17);
+  stroke-width: 1;
+}
+.scan-rings .scan-sweep { stroke: var(--ember); stroke-width: 1.4; opacity: 0.55; transform-origin: 50% 50%; animation: sweep 7s linear infinite; }
+@keyframes sweep { to { transform: rotate(360deg); } }
+.surface-visual .surface-readout {
+  position: absolute;
+  right: 14px;
+  bottom: 14px;
+  padding: 9px 13px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: rgba(12, 8, 5, 0.72);
+  color: var(--text-dim);
+  font-family: var(--mono);
+  font-size: var(--fs-micro);
+  letter-spacing: 0.1em;
+  backdrop-filter: blur(6px);
+}
+
+.surface-steps { margin: 0; padding: 0; list-style: none; }
+.surface-steps li {
+  display: grid;
+  align-items: start;
+  gap: 4px 18px;
+  padding: 20px 0;
+  border-top: 1px solid var(--border);
+  grid-template-columns: 34px minmax(0, 1fr);
+}
+.surface-steps li:last-child { border-bottom: 1px solid var(--border); }
+.surface-steps .step-index {
+  grid-row: span 2;
+  color: var(--ember);
+  font-family: var(--mono);
+  font-size: var(--fs-micro);
+  letter-spacing: 0.1em;
+  padding-top: 3px;
+}
+.surface-steps p { margin: 0; color: var(--text-dim); font-size: 13px; line-height: 1.65; }
+.surface-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 26px; }
+
+/* ---------- 9. Chapter 05 — destination into a plan ---------- */
+.plan-grid {
+  display: grid;
+  align-items: start;
+  gap: clamp(32px, 4.4vw, 68px);
+  grid-template-columns: minmax(0, 0.86fr) minmax(0, 1fr);
+}
+
+.plan-steps { margin: clamp(26px, 3vw, 40px) 0 0; padding: 0; list-style: none; counter-reset: plan; }
+.plan-steps li {
+  position: relative;
+  padding: 0 0 28px 50px;
+  counter-increment: plan;
+}
+.plan-steps li::before {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border: 1px solid var(--glass-edge);
+  border-radius: 50%;
+  background: var(--glass-fill-inset);
+  box-shadow: inset 0 1px 0 var(--glass-sheen);
+  color: var(--ember);
+  content: counter(plan, decimal-leading-zero);
+  font-family: var(--mono);
+  font-size: var(--fs-micro);
+}
+.plan-steps li::after {
+  position: absolute;
+  top: 34px;
+  bottom: 4px;
+  left: 15px;
+  width: 1px;
+  background: var(--border);
+  content: "";
+}
+.plan-steps li:last-child { padding-bottom: 0; }
+.plan-steps li:last-child::after { display: none; }
+.plan-steps p { margin: 8px 0 0; color: var(--text-dim); font-size: 13px; line-height: 1.65; }
+
+.plan-panel { padding: 22px; background: var(--glass-fill-raised); }
+.plan-panel-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+}
+.plan-panel-head strong { color: var(--cream); font-size: var(--fs-body); letter-spacing: -0.01em; }
+
+.plan-fields {
+  display: grid;
+  gap: 1px;
+  margin: 16px 0;
+  background: var(--border);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  overflow: hidden;
+}
+.plan-field { padding: 13px 14px; background: var(--glass-fill-inset); }
+.plan-field small { display: block; margin-bottom: 7px; color: var(--text-faint); text-transform: uppercase; }
+.plan-field b { color: var(--cream); font-size: 13px; font-weight: 700; }
+
+.plan-table { width: 100%; border-collapse: collapse; }
+.plan-table th, .plan-table td { padding: 12px 10px; border-bottom: 1px solid var(--border); text-align: right; }
+.plan-table th:first-child, .plan-table td:first-child { text-align: left; }
+.plan-table th { color: var(--text-faint); font-weight: 400; text-transform: uppercase; }
+.plan-table td { color: var(--text-dim); font-family: var(--mono); font-size: var(--fs-label); }
+.plan-table td:first-child { color: var(--cream); font-family: var(--sans); font-weight: 700; }
+.plan-table tr[data-state="selected"] td:first-child::after {
+  margin-left: 9px;
+  color: var(--safe);
+  content: "● selected";
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 400;
+}
+.plan-panel .solid-action { width: 100%; margin-top: 20px; }
+
+/* ---------- 10. Closing + footer ---------- */
+.closing {
+  padding: clamp(90px, 11vw, 170px) var(--gutter);
+  border-top: 1px solid var(--border);
+  background: radial-gradient(ellipse at 50% 120%, rgba(199, 93, 40, 0.16), transparent 62%);
+  text-align: center;
+}
+.closing p {
+  max-width: 24ch;
+  margin: 0 auto;
+  color: var(--cream);
+  font-size: clamp(21px, 2.8vw, 36px);
+  font-weight: 500;
+  letter-spacing: -0.015em;
+  line-height: 1.38;
+  text-wrap: balance;
+}
+.closing p em { color: var(--text-dim); font-style: normal; }
+.closing .explore-button { margin-top: clamp(32px, 4vw, 52px); }
+
+.footer-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 24px;
+  padding: 24px var(--gutter) 34px;
+  border-top: 1px solid var(--border);
+  color: var(--text-faint);
+  text-transform: uppercase;
+}
+.footer-bar a { text-decoration: none; }
+.footer-bar a:hover { color: var(--cream); }
+
+/* ---------- 11. Responsive ---------- */
+@media (max-width: 1080px) {
+  .route-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .route-stage { grid-column: 1 / -1; order: -1; }
+  .route-column { grid-auto-flow: row; }
+}
+
+@media (max-width: 900px) {
+  .world-grid,
+  .place-grid,
+  .surface-grid,
+  .plan-grid { grid-template-columns: minmax(0, 1fr); }
+  .world-globe { order: -1; width: min(100%, 420px); margin-inline: auto; }
+  .globe-annotation { left: 0; }
+  .stat-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .stat-strip > div:nth-child(3) { border-left: 0; }
+  .stat-strip > div:nth-child(n + 3) { border-top: 1px solid var(--border); }
+  .surface-visual { order: -1; }
+}
 
 @media (max-width: 680px) {
-  .landing { min-height: 1000px; }
+  .hero-track { min-height: 1000px; }
   .landing-screen { min-height: 520px; }
   .topbar { gap: 14px; padding-top: 25px; }
-  .top-index { font-size: 9px; }
   .brand-name { font-size: 11px; }
   .hero-copy { top: 47%; }
   .landing-screen.is-revealed .hero-copy { top: 35%; }
   .hero-copy h1 { font-size: clamp(84px, 23vw, 150px); }
   .planet-glow { top: 50%; width: 110vw; filter: blur(75px); }
   .bottom-bar { min-height: 74px; flex-wrap: wrap; gap: 8px 14px; padding-top: 13px; padding-bottom: 13px; }
-  .location-note { gap: 7px; font-size: 9px; }
+  .location-note { gap: 7px; }
   .model-credit { display: none; }
-  .motion-toggle { font-size: 9px; }
-  .loading-note { bottom: 30px; font-size: 9px; }
-  .scroll-cue { bottom: 27px; font-size: 8px; }
+  .loading-note { bottom: 118px; }
+  .scroll-cue { bottom: 88px; }
+
+  .route-grid, .place-grid { grid-template-columns: minmax(0, 1fr); }
+  .plan-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .plan-table th:nth-child(4), .plan-table td:nth-child(4) { display: none; }
+  .stat-strip dd { font-size: 16px; }
+  .chapter { padding-inline: 20px; }
 }
 
+/* The hero motion toggle also parks the decorative CSS animations. */
+body.is-motion-paused .scan-sweep,
+body.is-motion-paused .scroll-cue span { animation-play-state: paused; }
+
+/* ---------- Glass fallbacks ---------- */
+/* Without backdrop-filter the fills stay translucent but nothing separates
+   them from the atmosphere behind, so text contrast drops. Fall back to the
+   original opaque surfaces instead of shipping unreadable panels. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .card, .stat-strip { background: var(--surface); }
+  .plan-panel { background: var(--surface-raised); }
+  .plan-field, .terrain-frame, .plan-steps li::before { background: var(--surface-flat); }
+  .bottom-bar { background: #15100b; }
+  .globe-annotation { background: #1b130d; }
+  .region-visual { background: radial-gradient(ellipse at 50% 40%, #2d1a11, #140d09 72%); }
+  .surface-visual { background: radial-gradient(ellipse at 50% 46%, #2b190f, #120c08 74%); }
+}
+
+/* Honour an explicit request for less transparency: drop the blur work and
+   go back to solid panels. */
+@media (prefers-reduced-transparency: reduce) {
+  .card, .stat-strip, .bottom-bar, .globe-annotation, .ghost-action, .surface-visual {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+  .card, .stat-strip { background: var(--surface); }
+  .plan-panel { background: var(--surface-raised); }
+  .plan-field, .terrain-frame, .plan-steps li::before { background: var(--surface-flat); }
+  .bottom-bar { background: #15100b; }
+  .globe-annotation { background: #1b130d; }
+  body::before { opacity: 0.4; }
+}
+
+/* ---------- 12. Reduced motion ---------- */
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; }
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  [data-reveal] { opacity: 1; transform: none; }
+  .route-line { stroke-dashoffset: 0; }
   .scroll-cue span { animation: none; }
+  /* Keep the hero copy's fade, which keeps it legible against the planet,
+     but drop the scroll-linked sideways drift. */
+  .hero-copy-inner { translate: none; }
 }

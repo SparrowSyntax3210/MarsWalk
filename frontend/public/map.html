@@ -10,6 +10,9 @@
       rel="stylesheet"
       href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
     />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="./css/map.css" />
 
     <!-- Leaflet JS -->
@@ -66,151 +69,220 @@
           <button class="nav-item" type="button" data-view="ar-engine" data-title="3D / AR Engine" data-copy="Explore the Mars globe now; Unreal Engine, phone AR, and controller support are planned." aria-current="false"><span class="nav-icon">◉</span>3D / AR Engine</button>
         </nav>
         <a class="review-link" href="./vision-review.html"><span class="review-link-icon">◎</span><span><strong>Jezero visual review</strong><small>Independently mark hazards</small></span></a>
+        <div class="sidebar-caption active-region-caption" id="active-region-caption">ACTIVE REGION</div>
+        <div class="active-region-card" aria-live="polite">
+          <span class="status-dot"></span>
+          <span><strong id="active-region-name">Gale Crater</strong><small id="active-region-coords">5.40 S / 137.80 E</small></span>
+        </div>
         <div class="sidebar-bottom"><span class="status-dot"></span><span><strong>Mars surface workspace</strong><small>Explore · plan · visualize</small></span></div>
       </aside>
       <main class="app-main">
         <div class="workspace-toolbar">
           <button id="sidebar-toggle" class="sidebar-toggle" type="button" aria-label="Close sidebar" aria-controls="main-sidebar" aria-expanded="true" title="Close sidebar"><span aria-hidden="true">☰</span></button>
+          <div class="toolbar-heading">
+            <span class="toolbar-kicker" id="view-kicker">01 / EXPLORE</span>
+            <h1 id="view-title">Choose a region. Read the ground.</h1>
+          </div>
           <span class="toolbar-caption">MARS SURFACE WORKSPACE</span>
         </div>
 <div class="container workspace-layout" id="workspace-layout" data-view="explore">
-      <!-- Left Box: 3D Mars Globe + Region Sidebar & Labels -->
-      <div class="box" id="mars-3d-box">
-        <canvas id="mars-scene"></canvas>
-        <div id="labels-3d-layer"></div>
-
-        <!-- Curated Region Selector Sidebar on Left Box -->
+      <!-- Region catalog: globe, search, featured field sites, full gazetteer -->
+      <aside class="box catalog-column" id="mars-3d-box" aria-label="Region catalog">
+        <div class="catalog-head">
+          <div class="section-kicker">REGION CATALOG</div>
+          <h2>Explore Mars</h2>
+          <p class="location-count" id="location-count">Loading gazetteer…</p>
+        </div>
+        <div class="globe-stage" id="globe-stage">
+          <canvas id="mars-scene" aria-label="Interactive Mars globe. Click a point to select it."></canvas>
+          <div id="labels-3d-layer"></div>
+        </div>
         <div class="region-sidebar">
-          <div class="sidebar-title">LOCATION CATALOG</div>
-          <div class="location-count" id="location-count">
-            Loading gazetteer…
-          </div>
-          <div class="location-source">
-            Source:
-            <a
-              href="https://planetarynames.wr.usgs.gov/"
-              target="_blank"
-              rel="noreferrer"
-              >USGS / IAU</a
-            >
-          </div>
-          <input
-            id="location-search"
-            class="location-search"
-            type="search"
-            placeholder="Search all Mars locations"
-            aria-label="Search all Mars locations"
-            autocomplete="off"
-          />
-          <div
-            id="region-list-container"
-            class="location-list"
-            role="listbox"
-            aria-label="All named Mars locations"
-          >
-            <p class="location-empty">Loading locations…</p>
-          </div>
-        </div>
-      </div>
-
-      <!-- Right Box: 2D Panning Map and coordinate data explorer -->
-      <div class="box" id="mars-2d-box">
-        <!-- Top HUD Header -->
-        <div class="hud-top">
-          <div class="hud-subtitle">MARS SURFACE ATLAS · DATA EXPLORER</div>
-          <div id="region-title">Gale Crater — Curiosity Landing Site</div>
-          <div id="coord-readout">LAT: 5.40°S | LON: 137.80°E</div>
-        </div>
-
-        <!-- Coordinate values are populated only from real samples or derived data. -->
-        <div class="telemetry-panel">
-          <div class="panel-heading">
-            <div>
-              <div class="panel-section-title">SELECTED COORDINATE</div>
-              <strong id="point-status" class="point-status"
-                >Choose a point on the map</strong
-              >
+          <input id="location-search" class="location-search" type="search" placeholder="Search region or landing site" aria-label="Search all Mars locations" autocomplete="off" />
+          <div class="catalog-scroll">
+            <div class="catalog-group-title" id="featured-title">FEATURED FIELD SITES</div>
+            <div id="featured-sites" class="featured-sites" role="list" aria-labelledby="featured-title"></div>
+            <div class="catalog-group-row">
+              <span class="catalog-group-title" id="all-features-title">ALL NAMED FEATURES</span>
+              <select id="feature-type-filter" class="feature-type-filter" aria-label="Filter features by type"><option value="">All types</option></select>
             </div>
-            <button
-              id="point-panel-toggle"
-              class="panel-toggle"
-              type="button"
-              aria-expanded="true"
-              aria-controls="point-data"
-            >
-              −
-            </button>
+            <div id="region-list-container" class="location-list" role="listbox" aria-labelledby="all-features-title">
+              <p class="location-empty">Loading locations…</p>
+            </div>
+            <p class="location-source">Names: <a href="https://planetarynames.wr.usgs.gov/" target="_blank" rel="noreferrer">USGS / IAU Gazetteer</a></p>
           </div>
-          <div id="point-data" class="point-data">
-            <p class="data-hint">
-              Click the map or a region on the globe to inspect available data.
-            </p>
+        </div>
+      </aside>
+
+      <!-- 2D surface map -->
+      <div class="box" id="mars-2d-box">
+        <div class="hud-top" role="group" aria-label="Selection summary">
+          <div class="hud-cell">
+            <div class="hud-subtitle">MARS SURFACE ATLAS / DATA EXPLORER</div>
+            <div id="region-title">Gale Crater — Curiosity Landing Site</div>
+          </div>
+          <div class="hud-cell">
+            <div class="hud-subtitle">SELECTED COORDINATE</div>
+            <div id="coord-readout">5.400 S / 137.800 E</div>
+          </div>
+          <div class="hud-cell hud-status">
+            <span class="status-dot" id="point-status-dot"></span>
+            <div>
+              <strong id="point-status" class="point-status">Choose a point on the map</strong>
+              <small id="point-status-detail">Terrain, geology and climate records</small>
+            </div>
           </div>
         </div>
 
-        <!-- 2D Leaflet Panning Map -->
         <div id="mars-2d-map"></div>
 
-        <!-- Basemap display controls -->
-        <div class="hud-bottom">
-          <div class="controls-row">
-            <select id="layer-select">
-              <option value="HIRISE_AUTO">HiRISE where available · CTX fallback · warm display</option>
-              <option value="CTX_WARM">CTX image · warm display</option>
-              <option value="CTX_RAW">CTX image · raw display</option>
-              <option value="THEMIS_IR">THEMIS day infrared · image</option>
-              <option value="MOLA_CLR">MOLA color hillshade · image</option>
-              <option value="TES_THERMAL">
-                TES thermal inertia · map overlay
-              </option>
-              <option value="TES_DUST">
-                TES dust cover index · map overlay
-              </option>
-              <option value="TES_CLAY">
-                TES sheet silicates · map overlay
-              </option>
-              <option value="MOLA_ROUGHNESS">
-                MOLA roughness · map overlay
-              </option>
-              <option value="VIKING">Viking global mosaic · image</option>
-            </select>
-            <button id="zoom-out">−</button>
-            <span id="zoom-label">Z: 8</span>
-            <button id="zoom-in">+</button>
+        <!-- Route view HUD -->
+        <div class="route-hud-top" id="route-hud-top">
+          <div class="route-hud-heading">
+            <div class="hud-subtitle" id="route-hud-kicker">MARS / ROUTE WORKSPACE</div>
+            <div class="route-hud-title" id="route-hud-title">Set a start and destination</div>
           </div>
-          <small id="map-source-note">HiRISE imagery appears only inside its footprints; route elevation uses the best matching DTM available.</small>
+          <span class="route-status-pill" id="route-status-pill" data-state="draft" role="status"><i aria-hidden="true"></i><span id="route-status-text">DRAFT</span></span>
+        </div>
+        <div class="route-hud-bottom" id="route-hud-bottom">
+          <div class="route-hud-endpoints">
+            <span class="route-hud-point"><i class="endpoint-dot start-dot"></i><small>START</small><strong id="route-hud-start">Not set</strong></span>
+            <span class="route-hud-line" aria-hidden="true"></span>
+            <span class="route-hud-point"><i class="endpoint-dot end-dot"></i><small>DESTINATION</small><strong id="route-hud-end">Not set</strong></span>
+          </div>
+          <strong class="route-hud-metric" id="route-hud-metric">No route yet</strong>
+        </div>
+        <section class="route-region-search" id="route-region-search" aria-label="Choose a region">
+          <div class="route-region-head">
+            <span class="hud-subtitle" id="route-region-label">CHOOSE REGION</span>
+            <button type="button" class="route-region-toggle" id="route-region-toggle" aria-expanded="true" aria-controls="route-region-body" aria-label="Collapse region search">−</button>
+          </div>
+          <div class="route-region-body" id="route-region-body">
+            <input id="route-region-input" class="route-region-input" type="search" placeholder="Search region or landing site" aria-label="Search a Mars region or landing site" aria-controls="route-region-results" autocomplete="off" />
+            <div class="route-region-results" id="route-region-results" role="listbox" aria-labelledby="route-region-label"></div>
+            <p class="route-region-note" id="route-region-note">Pick a region to fly there, then click the map to set endpoints.</p>
+          </div>
+        </section>
+        <div class="cursor-readout" id="cursor-readout" aria-hidden="true">—</div>
+
+        <div class="hud-bottom">
+          <div class="layers-summary">
+            <span class="hud-subtitle">VISIBLE LAYERS</span>
+            <div class="layer-chips" id="layer-chips"></div>
+          </div>
+          <div class="hud-bottom-actions">
+            <span id="zoom-label" class="zoom-label">Z 10</span>
+            <button id="layer-manager-toggle" class="layer-manager-toggle" type="button" aria-expanded="false" aria-controls="layer-manager">Manage layers +</button>
+          </div>
+          <div class="layer-manager" id="layer-manager" hidden>
+            <label class="layer-field">Base map / overlay
+              <select id="layer-select">
+                <option value="HIRISE_AUTO">HiRISE where available · CTX fallback · warm display</option>
+                <option value="CTX_WARM">CTX image · warm display</option>
+                <option value="CTX_RAW">CTX image · raw display</option>
+                <option value="THEMIS_IR">THEMIS day infrared · image</option>
+                <option value="MOLA_CLR">MOLA color hillshade · image</option>
+                <option value="TES_THERMAL">TES thermal inertia · map overlay</option>
+                <option value="TES_DUST">TES dust cover index · map overlay</option>
+                <option value="TES_CLAY">TES sheet silicates · map overlay</option>
+                <option value="MOLA_ROUGHNESS">MOLA roughness · map overlay</option>
+                <option value="VIKING">Viking global mosaic · image</option>
+              </select>
+            </label>
+            <label class="layer-check"><input id="feature-labels-toggle" type="checkbox" checked /> Named feature labels</label>
+            <small id="map-source-note">HiRISE imagery appears only inside its footprints; elsewhere CTX fills in.</small>
+          </div>
         </div>
       </div>
-      <section class="route-panel" id="route-panel" hidden>
-        <div class="section-kicker">GLOBAL ROUTE PLANNER</div>
-        <h2>Choose endpoints</h2>
-        <p class="route-intro">Search a named place in the globe catalog, click either map, or enter coordinates directly.</p>
+
+      <!-- Selected location details -->
+      <aside class="box explore-info" id="explore-info" aria-label="Selected location details" aria-live="polite">
+        <div class="info-head">
+          <div class="section-kicker" id="info-kicker">SELECTED LOCATION</div>
+          <h2 id="info-title">Gale Crater</h2>
+          <div class="info-tags" id="info-tags"></div>
+          <p class="info-coords" id="info-coords">5.4000° S · 137.8000° E</p>
+          <p class="info-context" id="info-context"></p>
+        </div>
+        <div class="info-scroll">
+          <section id="info-mission" class="info-mission" hidden></section>
+          <div class="info-glance" id="info-glance"></div>
+          <div id="info-sections" class="info-sections"></div>
+          <div class="info-actions">
+            <button type="button" class="info-action" id="info-copy">Copy coordinates</button>
+            <button type="button" class="info-action" id="info-route-start">Use as route start</button>
+            <button type="button" class="info-action" id="info-route-end">Use as destination</button>
+            <a class="info-action" id="info-open-3d" href="./jezero-3d.html" hidden>Walk Jezero in 3D ↗</a>
+          </div>
+        </div>
+      </aside>
+      <section class="route-panel" id="route-panel" hidden aria-label="Route builder">
+        <div class="route-panel-head">
+          <div class="section-kicker">ROUTE BUILDER</div>
+          <h2>Set your traverse</h2>
+          <p class="route-intro">Click the map to drop a start, then a destination. You can also search a named place or type coordinates.</p>
+        </div>
+        <datalist id="route-place-options"></datalist>
+
         <div class="route-endpoint" data-endpoint-card="start">
-          <div class="endpoint-heading"><span class="endpoint-dot start-dot"></span><strong>START</strong><span id="start-coordinate-label">Not set</span></div>
-          <div class="coordinate-inputs"><label>Latitude °<input id="route-start-lat" type="number" min="-90" max="90" step="0.0001" placeholder="-5.40"></label><label>Longitude °<input id="route-start-lon" type="number" min="-180" max="180" step="0.0001" placeholder="137.80"></label></div>
-          <button class="endpoint-pick" type="button" data-route-pick="start">Pick start on a map</button>
+          <div class="endpoint-heading"><span class="endpoint-dot start-dot"></span><span class="endpoint-kicker">START POINT</span><button class="endpoint-pick" type="button" data-route-pick="start">Pick on map</button></div>
+          <div class="endpoint-main"><strong id="start-name">Not set</strong><span id="start-coordinate-label">—</span></div>
+          <details class="endpoint-edit">
+            <summary>Search or enter coordinates</summary>
+            <input class="endpoint-search" id="route-start-search" type="search" list="route-place-options" placeholder="Search a named place" autocomplete="off" aria-label="Search a named place for the start point" />
+            <div class="coordinate-inputs"><label>Latitude °<input id="route-start-lat" type="number" min="-90" max="90" step="0.0001" placeholder="18.44"></label><label>Longitude °<input id="route-start-lon" type="number" min="-180" max="180" step="0.0001" placeholder="77.45"></label></div>
+          </details>
         </div>
+
         <div class="route-endpoint" data-endpoint-card="end">
-          <div class="endpoint-heading"><span class="endpoint-dot end-dot"></span><strong>DESTINATION</strong><span id="end-coordinate-label">Not set</span></div>
-          <div class="coordinate-inputs"><label>Latitude °<input id="route-end-lat" type="number" min="-90" max="90" step="0.0001" placeholder="18.44"></label><label>Longitude °<input id="route-end-lon" type="number" min="-180" max="180" step="0.0001" placeholder="77.45"></label></div>
-          <button class="endpoint-pick" type="button" data-route-pick="end">Pick destination on a map</button>
+          <div class="endpoint-heading"><span class="endpoint-dot end-dot"></span><span class="endpoint-kicker">DESTINATION</span><button class="endpoint-pick" type="button" data-route-pick="end">Pick on map</button></div>
+          <div class="endpoint-main"><strong id="end-name">Not set</strong><span id="end-coordinate-label">—</span></div>
+          <details class="endpoint-edit">
+            <summary>Search or enter coordinates</summary>
+            <input class="endpoint-search" id="route-end-search" type="search" list="route-place-options" placeholder="Search a named place" autocomplete="off" aria-label="Search a named place for the destination" />
+            <div class="coordinate-inputs"><label>Latitude °<input id="route-end-lat" type="number" min="-90" max="90" step="0.0001" placeholder="18.47"></label><label>Longitude °<input id="route-end-lon" type="number" min="-180" max="180" step="0.0001" placeholder="77.40"></label></div>
+          </details>
         </div>
-        <button id="show-global-map" class="global-map-button" type="button">Show whole Mars in 2D map</button><button id="clear-route-button" class="global-map-button" type="button">Clear endpoints</button>
-        <label class="route-mode-label" for="route-mode-select">ROUTE PRIORITY</label>
-        <select id="route-mode-select" aria-label="Route mode"><option value="balanced">Balanced</option><option value="safest">Safest</option><option value="fastest">Fastest</option></select>
-        <label class="vision-toggle" for="route-vision-toggle"><input id="route-vision-toggle" type="checkbox"><span><strong>Experimental Jezero image + terrain layer</strong><small>Soft A* cost only · weak-label prototype</small></span></label>
-        <button id="route-plan-button" type="button" disabled>Calculate route</button>
-        <div class="terrain-legend" aria-label="Terrain traversability classes">
-          <div class="legend-heading">TERRAIN CLASS · COST 0–1</div>
-          <div class="terrain-class-row"><span class="terrain-swatch swatch-impassable"></span><strong>Impassable</strong><small>Mapped dune/crater zone or slope over selected limit</small></div>
-          <div class="terrain-class-row"><span class="terrain-swatch swatch-high"></span><strong>High</strong><small>Cost ≥ 0.67</small></div>
-          <div class="terrain-class-row"><span class="terrain-swatch swatch-caution"></span><strong>Caution</strong><small>Cost 0.33–0.67</small></div>
-          <div class="terrain-class-row"><span class="terrain-swatch swatch-safe"></span><strong>Safe</strong><small>Cost &lt; 0.33</small></div>
-          <div class="terrain-class-row"><span class="terrain-swatch swatch-unknown"></span><strong>Unknown</strong><small>Incomplete 3×3 DEM neighborhood</small></div>
-          <p class="legend-note">Route segments use these colors. Bands are initial global-map thresholds, not rover-certified limits.</p>
-          <p id="terrain-class-summary" class="terrain-class-summary">Route class counts appear after planning.</p>
+
+        <div class="route-section-label" id="route-priority-label">ROUTE PRIORITY</div>
+        <div class="route-priority" role="radiogroup" aria-labelledby="route-priority-label">
+          <label><input type="radio" name="route-mode" value="safest" /><span>Safest</span></label>
+          <label><input type="radio" name="route-mode" value="balanced" checked /><span>Balanced</span></label>
+          <label><input type="radio" name="route-mode" value="fastest" /><span>Fast</span></label>
         </div>
-        <p class="route-hint" id="route-hint">The planner prefers a covering HiRISE or CTX stereo DTM. If local stereo coverage is unavailable, it uses the global 10-degree Parquet grid at nominal approximately 1 km resolution.</p>
+        <p class="route-priority-note" id="route-priority-note">Slope limit 20° · moderate terrain-risk weight</p>
+        <select id="route-mode-select" hidden aria-hidden="true" tabindex="-1"><option value="balanced" selected>Balanced</option><option value="safest">Safest</option><option value="fastest">Fastest</option></select>
+
+        <div class="route-section-label">CANDIDATE SUMMARY</div>
+        <div class="route-summary" id="route-summary">
+          <div class="route-summary-row"><span>Distance</span><strong id="route-sum-distance">—</strong></div>
+          <div class="route-summary-row"><span>Maximum slope</span><strong id="route-sum-slope">—</strong></div>
+          <div class="route-summary-row"><span>Mean slope</span><strong id="route-sum-mean-slope">—</strong></div>
+          <div class="route-summary-row"><span>Estimated traverse</span><strong id="route-sum-time">—</strong></div>
+          <div class="route-summary-row"><span>Terrain mix</span><strong id="route-sum-terrain">—</strong></div>
+          <div class="route-terrain-bar" id="route-terrain-bar" aria-hidden="true"></div>
+          <div class="route-summary-row is-highlight"><span>Named features nearby</span><strong id="route-sum-features">—</strong></div>
+        </div>
+        <p class="route-warning" id="route-warning" role="alert" hidden></p>
+        <p class="route-summary-note" id="route-summary-note">Traverse time uses the Mission Planner speed and driving-hours inputs.</p>
+        <p id="terrain-class-summary" class="terrain-class-summary" hidden>Route class counts appear after planning.</p>
+
+        <button id="route-plan-button" class="route-cta" type="button" disabled>Calculate route</button>
+        <button id="route-to-mission" class="route-secondary" type="button" disabled>Send to Mission Planner →</button>
+        <p class="route-hint" id="route-hint">Choose a start and destination to begin.</p>
+
+        <details class="route-advanced">
+          <summary>Options and legend</summary>
+          <label class="vision-toggle" for="route-vision-toggle"><input id="route-vision-toggle" type="checkbox"><span><strong>Experimental Jezero image + terrain layer</strong><small>Soft A* cost only · weak-label prototype</small></span></label>
+          <div class="route-advanced-actions"><button id="show-global-map" class="global-map-button" type="button">Show whole Mars</button><button id="clear-route-button" class="global-map-button" type="button">Clear endpoints</button></div>
+          <div class="route-legend" aria-label="Route segment colours">
+            <span><i class="terrain-swatch swatch-safe"></i>Safe · cost &lt; 0.33</span>
+            <span><i class="terrain-swatch swatch-caution"></i>Caution · 0.33–0.67</span>
+            <span><i class="terrain-swatch swatch-high"></i>High · ≥ 0.67</span>
+            <span><i class="terrain-swatch swatch-unknown"></i>Unknown · incomplete DEM</span>
+          </div>
+          <p class="legend-note">Impassable cells (mapped dunes, crater zones, or slopes over the priority limit) are avoided. Bands are planning thresholds, not rover-certified limits.</p>
+        </details>
       </section>
       <section class="section-card mission-card" id="mission-panel" hidden>
         <div class="section-kicker">MISSION WORKSPACE</div><h2>Mission Planner</h2>
@@ -255,10 +327,11 @@
       </section>
       <section class="section-card ar-card" id="ar-panel" hidden>
         <div class="section-kicker">3D / AR ENGINE</div><h2>Mars in 3D</h2>
-        <p>Try a lightweight phone head-tracking demo before we build the Unreal Mars scene. Put your phone in a viewer, turn your head, and check that the camera follows.</p>
-        <div class="engine-preview"><div class="engine-orbit"><span></span></div><div><strong>Phone VR tracking test</strong><small>Basic Mars-like 360° scene · no real Mars data yet</small></div></div>
-        <a class="card-action vr-test-link" href="./vr-test.html">Open phone head-tracking test <span>↗</span></a>
-        <div class="engine-roadmap"><span>AFTER TRACKING WORKS</span><p>Replace test landscape with Mars terrain</p><p>Connect route and hazard overlays</p><p>Add rover controller and mission HUD</p></div>
+        <p>Explore a real Jezero region in the browser using its CTX surface image and stereo elevation data. Turn your phone to look around, then walk across the terrain with touch controls or a gamepad.</p>
+        <div class="engine-preview"><div class="engine-orbit"><span></span></div><div><strong>Jezero 3D terrain</strong><small>Regional CTX stereo DTM · warm surface view</small></div></div>
+        <a class="card-action vr-test-link" href="./jezero-3d.html">Open Jezero 3D browser view <span>↗</span></a>
+        <a class="card-action vr-test-link" href="./vr-test.html">Open simple head-tracking demo <span>↗</span></a>
+        <div class="engine-roadmap"><span>PROTOTYPE STATUS</span><p>Real image and elevation mesh for one Jezero footprint</p><p>Phone head tracking, split-screen viewer, touch and gamepad movement</p><p>Next: connect route/hazard overlays and add laptop-to-phone controls</p></div>
         <button type="button" class="card-action" data-open-view="explore">Back to surface explorer <span>↗</span></button>
       </section>
         </div>

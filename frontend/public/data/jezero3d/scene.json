@@ -1,0 +1,26 @@
+{
+  "name": "Jezero Crater \u2014 CTX stereo terrain preview",
+  "source": "Aligned CTX orthoimage and CTX stereo DTM, approximately 20 m posting",
+  "attribution": "USGS Astrogeology Science Center / Mars CTX stereo products",
+  "bbox_projected_m_west_south_east_north": [
+    4577133.445008798,
+    1052985.3235249063,
+    4617721.473674414,
+    1146178.5021103406
+  ],
+  "width_m": 40588.02866561645,
+  "height_m": 93193.17858543429,
+  "raster_width": 1024,
+  "raster_height": 2351,
+  "elevation_min_m": -3066.848388671875,
+  "elevation_max_m": -1356.9415283203125,
+  "texture": "./data/jezero3d/jezero-surface.jpg",
+  "heightmap": "./data/jezero3d/jezero-height.png",
+  "heightmap_encoding": "R and G store normalized 16-bit elevation; B=255 means valid DTM sample",
+  "horizontal_scene_scale": 0.1,
+  "vertical_exaggeration": 2.0,
+  "source_resolution_m": [
+    20.162955124498982,
+    20.162955124498982
+  ]
+}
