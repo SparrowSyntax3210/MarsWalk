@@ -16,9 +16,9 @@ renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.2;
 renderer.setClearColor(0x332019, 1);
 
-const camera = new THREE.PerspectiveCamera(72, 1, 0.1, 5000);
-const leftEye = new THREE.PerspectiveCamera(72, 1, 0.1, 5000);
-const rightEye = new THREE.PerspectiveCamera(72, 1, 0.1, 5000);
+const camera = new THREE.PerspectiveCamera(72, 1, 0.1, 20000);
+const leftEye = new THREE.PerspectiveCamera(72, 1, 0.1, 20000);
+const rightEye = new THREE.PerspectiveCamera(72, 1, 0.1, 20000);
 const eyeOffset = new THREE.Vector3();
 const light = new THREE.HemisphereLight(0xffd9b2, 0x39241d, 1.7);
 scene.add(light);
@@ -63,6 +63,7 @@ let gridColumns = 256;
 let gridRows = 588;
 let sceneWidth;
 let sceneLength;
+let crop = null;
 let groundHeightAtStart = 0;
 let walkedMeters = 0;
 
@@ -114,8 +115,16 @@ function terrainY(column, row) {
 function buildTerrain(heightPixels, texture) {
   const imgWidth = heightPixels.width;
   const imgHeight = heightPixels.height;
-  gridRows = Math.min(588, imgHeight - 1);
-  gridColumns = Math.min(256, imgWidth - 1);
+  const requestedSizeM = Math.min(sceneData.region_size_m ?? 5000, sceneData.width_m, sceneData.height_m);
+  const pixelsPerMeterX = (imgWidth - 1) / sceneData.width_m;
+  const pixelsPerMeterY = (imgHeight - 1) / sceneData.height_m;
+  const cropWidth = Math.min(imgWidth - 1, Math.max(2, Math.round(requestedSizeM * pixelsPerMeterX)));
+  const cropHeight = Math.min(imgHeight - 1, Math.max(2, Math.round(requestedSizeM * pixelsPerMeterY)));
+  const cropX = Math.floor((imgWidth - cropWidth) / 2);
+  const cropY = Math.floor((imgHeight - cropHeight) / 2);
+  crop = { x: cropX, y: cropY, width: cropWidth, height: cropHeight };
+  gridRows = cropHeight + 1;
+  gridColumns = cropWidth + 1;
   const sampleCanvas = document.createElement("canvas");
   sampleCanvas.width = imgWidth;
   sampleCanvas.height = imgHeight;
@@ -127,13 +136,13 @@ function buildTerrain(heightPixels, texture) {
   const uvs = new Float32Array(vertexCount * 2);
   elevationValues = new Float32Array(vertexCount);
   validValues = new Uint8Array(vertexCount);
-  sceneWidth = sceneData.width_m * sceneData.horizontal_scene_scale;
-  sceneLength = sceneData.height_m * sceneData.horizontal_scene_scale;
+  sceneWidth = (cropWidth / (imgWidth - 1)) * sceneData.width_m * sceneData.horizontal_scene_scale;
+  sceneLength = (cropHeight / (imgHeight - 1)) * sceneData.height_m * sceneData.horizontal_scene_scale;
 
   for (let row = 0; row < gridRows; row += 1) {
-    const sourceRow = Math.round((row / (gridRows - 1)) * (imgHeight - 1));
+    const sourceRow = cropY + row;
     for (let column = 0; column < gridColumns; column += 1) {
-      const sourceColumn = Math.round((column / (gridColumns - 1)) * (imgWidth - 1));
+      const sourceColumn = cropX + column;
       const sourceIndex = (sourceRow * imgWidth + sourceColumn) * 4;
       const index = row * gridColumns + column;
       const normalized = pixels[sourceIndex] * 256 + pixels[sourceIndex + 1];
@@ -142,8 +151,8 @@ function buildTerrain(heightPixels, texture) {
       positions[index * 3] = (column / (gridColumns - 1) - 0.5) * sceneWidth;
       positions[index * 3 + 1] = terrainY(column, row);
       positions[index * 3 + 2] = (0.5 - row / (gridRows - 1)) * sceneLength;
-      uvs[index * 2] = column / (gridColumns - 1);
-      uvs[index * 2 + 1] = 1 - row / (gridRows - 1);
+      uvs[index * 2] = sourceColumn / (imgWidth - 1);
+      uvs[index * 2 + 1] = 1 - sourceRow / (imgHeight - 1);
     }
   }
 
@@ -171,7 +180,7 @@ function buildTerrain(heightPixels, texture) {
   groundHeightAtStart = (centerElevation - sceneData.elevation_min_m) * sceneData.horizontal_scene_scale * sceneData.vertical_exaggeration;
   const startColumn = Math.floor(gridColumns / 2);
   const startRow = Math.floor(gridRows * 0.72);
-  camera.position.set(0, terrainY(startColumn, startRow) + 220, (0.5 - startRow / (gridRows - 1)) * sceneLength);
+  camera.position.set(0, terrainY(startColumn, startRow) + 2, (0.5 - startRow / (gridRows - 1)) * sceneLength);
   positionValue.textContent = "Jezero · CTX stereo DTM";
 }
 
@@ -192,8 +201,8 @@ async function loadScene() {
   surfaceTexture.colorSpace = THREE.SRGBColorSpace;
   surfaceTexture.anisotropy = Math.min(renderer.capabilities.getMaxAnisotropy(), 4);
   buildTerrain(heightPixels, surfaceTexture);
-  const renderedSpacing = Math.round(Math.max(sceneData.width_m / (gridColumns - 1), sceneData.height_m / (gridRows - 1)));
-  document.querySelector("#data-resolution").textContent = `~${Math.round(sceneData.source_resolution_m[0])} m DTM source · ~${renderedSpacing} m rendered mesh · ${(sceneData.width_m / 1000).toFixed(1)} × ${(sceneData.height_m / 1000).toFixed(1)} km area.`;
+  const renderedSpacing = Math.round(Math.max(sceneWidth / (gridColumns - 1), sceneLength / (gridRows - 1)));
+  document.querySelector("#data-resolution").textContent = `~${Math.round(sceneData.source_resolution_m[0])} m DTM source · ~${renderedSpacing} m rendered mesh · ${(sceneWidth / 1000).toFixed(1)} × ${(sceneLength / 1000).toFixed(1)} km playable patch.`;
   loadingCover.classList.add("is-hidden");
   setTimeout(() => loadingCover.remove(), 450);
   setStatus("Jezero terrain loaded. Turn your head to look around; use keys, touch arrows, or a gamepad to move.", "good");
@@ -301,7 +310,7 @@ function moveCamera(delta) {
   right.set(forward.z, 0, -forward.x).normalize();
   const previousX = camera.position.x;
   const previousZ = camera.position.z;
-  const speed = keys.has("ShiftLeft") || keys.has("ShiftRight") ? 380 : 180;
+  const speed = (keys.has("ShiftLeft") || keys.has("ShiftRight") ? 12 : 4.5) * sceneData.horizontal_scene_scale;
   camera.position.addScaledVector(forward, -movement.z * speed * delta);
   camera.position.addScaledVector(right, movement.x * speed * delta);
   camera.position.x = THREE.MathUtils.clamp(camera.position.x, -sceneWidth / 2, sceneWidth / 2);
@@ -309,7 +318,7 @@ function moveCamera(delta) {
   const column = ((camera.position.x / sceneWidth) + 0.5) * (gridColumns - 1);
   const row = (0.5 - camera.position.z / sceneLength) * (gridRows - 1);
   const floor = terrainY(column, row);
-  camera.position.y = Math.max(camera.position.y, floor + 12);
+  camera.position.y = floor + 1.7 * sceneData.horizontal_scene_scale;
   const distance = Math.hypot(camera.position.x - previousX, camera.position.z - previousZ);
   walkedMeters += distance / sceneData.horizontal_scene_scale;
   if (distance > 0) positionValue.textContent = `Jezero · moved ${(walkedMeters / 1000).toFixed(2)} km`;

@@ -61,7 +61,7 @@ function requestOptionsFor(mode, values) {
     mode,
     max_slope_deg: values.maxSlope,
     use_vision_model: values.useVision,
-    vision_weight: values.useVision ? 0.15 : 0,
+    vision_weight: values.useVision ? 0.25 : 0,
   };
 }
 

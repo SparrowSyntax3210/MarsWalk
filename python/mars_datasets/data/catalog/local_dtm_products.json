@@ -7,7 +7,7 @@
       "instrument": "CTX",
       "collection": "mro_ctx_controlled_usgs_dtms",
       "native_posting_m": 20.162955,
-      "bbox_lonlat": [77.212811, 17.757789, 77.905977, 19.342308],
+      "bbox_lonlat": [77.2190097, 17.7644993, 77.9037543, 19.3367246],
       "local_file": "ctx_jezero_P18_007925_1987_XN_18N282W__P19_008650_1987_XI_18N282W_dtm.tif",
       "bytes": 18114156,
       "purpose": "Covers the route endpoints shown in the current Jezero map view; local fallback when no HiRISE DTM covers the corridor.",

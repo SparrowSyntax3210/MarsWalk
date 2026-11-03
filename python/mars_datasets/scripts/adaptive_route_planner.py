@@ -40,6 +40,7 @@ MAX_LOCAL_ROUTE_KM = 100.0
 MAX_LOCAL_SNAP_M = 500.0
 MAX_CORRIDOR_MARGIN_M = 20_000.0
 MIN_CORRIDOR_MARGIN_M = 10_000.0
+MIN_LOCAL_SEARCH_MARGIN_M = 250.0
 CRATER_AVOID_BUFFER_KM = 0.5
 MAX_GRID_CELLS = 2_500_000
 
@@ -79,11 +80,13 @@ def validate_route(payload):
     return start, end, distance
 
 
-def corridor_bbox(start, end, distance_km):
+def corridor_bbox(start, end, distance_km, margin_m=None):
     if abs(start[1] - end[1]) > 180.0:
         return None
     mean_lat = (start[0] + end[0]) / 2.0
-    margin_m = min(MAX_CORRIDOR_MARGIN_M, max(MIN_CORRIDOR_MARGIN_M, distance_km * 250.0))
+    if margin_m is None:
+        margin_m = min(MAX_CORRIDOR_MARGIN_M, max(MIN_CORRIDOR_MARGIN_M, distance_km * 250.0))
+    margin_m = max(0.0, min(MAX_CORRIDOR_MARGIN_M, float(margin_m)))
     lat_margin = math.degrees(margin_m / MARS_RADIUS_M)
     cos_lat = max(0.05, abs(math.cos(math.radians(mean_lat))))
     lon_margin = math.degrees(margin_m / (MARS_RADIUS_M * cos_lat))
@@ -105,7 +108,7 @@ def stac_get(url):
         return json.loads(response.read().decode("utf-8"))
 
 
-def covering_products(bbox):
+def covering_products(bbox, include_remote=True):
     west, south, east, north, _margin = bbox
     # Use downloaded stereo DTMs first so known local coverage works offline.
     local_catalog = DTM_CATALOG
@@ -138,6 +141,8 @@ def covering_products(bbox):
                     return sorted(candidates, key=lambda p: p["gsd_m"])
         except (OSError, ValueError, TypeError, json.JSONDecodeError):
             pass
+    if not include_remote:
+        return []
     query = urllib.parse.urlencode(
         {"bbox": f"{west:.7f},{south:.7f},{east:.7f},{north:.7f}", "limit": "100"}
     )
@@ -226,13 +231,85 @@ def annotate_degraded_fallback(result, reason):
 
 
 def choose_product(start, end, distance_km):
-    bbox = corridor_bbox(start, end, distance_km)
-    if bbox is None:
+    desired_bbox = corridor_bbox(start, end, distance_km)
+    if desired_bbox is None:
         return None, "Local DTM lookup does not cross the longitude wrap."
     if distance_km > MAX_LOCAL_ROUTE_KM:
         return None, f"Local DTM refinement is limited to routes up to {MAX_LOCAL_ROUTE_KM:.0f} km."
-    products = covering_products(bbox)
-    return (products[0], None) if products else (None, "No single HiRISE or CTX stereo DTM covers the full buffered route corridor.")
+
+    # Use local products first. If the endpoints fit but the usual buffer runs
+    # past a cached footprint edge, shrink only that buffer instead of dropping
+    # straight to the kilometre-scale global grid.
+    products = covering_products(desired_bbox, include_remote=False)
+    if products:
+        return products[0], None
+
+    try:
+        catalog = json.loads(DTM_CATALOG.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        catalog = {}
+    mean_lat = (start[0] + end[0]) / 2.0
+    metres_per_degree_lat = MARS_RADIUS_M * math.pi / 180.0
+    metres_per_degree_lon = metres_per_degree_lat * max(0.05, abs(math.cos(math.radians(mean_lat))))
+    route_west, route_east = sorted((start[1], end[1]))
+    route_south, route_north = sorted((start[0], end[0]))
+    desired_margin = desired_bbox[4]
+    local_candidates = []
+    for item in catalog.get("products", []):
+        bounds = item.get("bbox_lonlat")
+        filename = item.get("local_file")
+        local_path = CACHE_DIR / filename if filename else None
+        if not bounds or len(bounds) < 4 or not local_path or not local_path.is_file():
+            continue
+        west, south, east, north = map(float, bounds[:4])
+        if west > route_west or east < route_east or south > route_south or north < route_north:
+            continue
+        gsd = float(item.get("native_posting_m", 1_000_000.0))
+        # Catalog footprints can be a few hundred metres wider than valid DTM
+        # pixels. Leave a 1 km guard so raster windowing and edge nodata do not
+        # put the route itself on the product boundary.
+        available_margin = min(
+            (route_west - west) * metres_per_degree_lon,
+            (east - route_east) * metres_per_degree_lon,
+            (route_south - south) * metres_per_degree_lat,
+            (north - route_north) * metres_per_degree_lat,
+        )
+        safe_available_margin = available_margin - 1_000.0
+        if safe_available_margin < MIN_LOCAL_SEARCH_MARGIN_M:
+            continue
+        margin = min(desired_margin, max(MIN_LOCAL_SEARCH_MARGIN_M, safe_available_margin))
+        local_candidates.append({
+            "collection": item.get("collection", "cached_local_dtm"),
+            "instrument": item.get("instrument"),
+            "id": item.get("id", local_path.stem),
+            "bbox": [west, south, east, north],
+            "gsd_m": gsd,
+            "local_path": str(local_path),
+            "source": "Locally cached USGS analysis-ready stereo DTM",
+            "title": item.get("id", local_path.stem),
+            "search_margin_m": margin,
+            "search_margin_constrained": margin + 1.0 < desired_margin,
+            "search_margin_available_m": max(0.0, available_margin),
+        })
+    if local_candidates:
+        priority = {"HiRISE": 0, "CTX": 1}
+        local_candidates.sort(key=lambda product: (priority.get(product["instrument"], 2), product["gsd_m"], -product["search_margin_m"]))
+        chosen = local_candidates[0]
+        chosen["search_margin_note"] = (
+            "Using cached local stereo coverage with a reduced search margin "
+            f"({chosen['search_margin_m']:.0f} m) because the full buffer exceeds the DTM footprint."
+        )
+        return chosen, chosen["search_margin_note"]
+
+    # No cached product contains the route itself; only then ask the online
+    # catalog for a DTM covering the complete preferred search corridor.
+    try:
+        products = covering_products(desired_bbox, include_remote=True)
+    except (OSError, urllib.error.URLError, TimeoutError, ValueError, json.JSONDecodeError) as error:
+        return None, f"USGS DTM catalog lookup failed: {error}"
+    if products:
+        return products[0], None
+    return None, "No single HiRISE or CTX stereo DTM covers the route and its buffered search corridor."
 
 
 def local_geometry(elevation, pixel_width_m, pixel_height_m):
@@ -512,7 +589,7 @@ def plan_local(payload, product, start, end, requested_distance, mode, max_slope
         raise ValueError("vision_weight must be between 0 and 0.25 for this experimental layer.")
 
     is_global_blend = product.get("coordinate_system") == "mars_lonlat"
-    bbox = corridor_bbox(start, end, requested_distance)
+    bbox = corridor_bbox(start, end, requested_distance, product.get("search_margin_m"))
     mean_lat_rad = math.radians((start[0] + end[0]) / 2.0)
     x_scale = max(0.05, abs(math.cos(mean_lat_rad))) if is_global_blend else 1.0
     start_x, start_y = lonlat_to_xy(start[1], start[0], x_scale)
@@ -782,6 +859,9 @@ def plan_local(payload, product, start, end, requested_distance, mode, max_slope
             "route_grid_m": round(pixel_width_m, 2),
             "coverage_bbox_lonlat": product["bbox"],
             "source": product.get("source", "USGS Astrogeology analysis-ready STAC DTM"),
+            "search_margin_m": round(float(bbox[4]), 1),
+            "search_margin_constrained": bool(product.get("search_margin_constrained", False)),
+            "search_margin_note": product.get("search_margin_note"),
         },
         "imagery": {
             "source": "NASA MRO HiRISE mosaic where available, with CTX underneath",

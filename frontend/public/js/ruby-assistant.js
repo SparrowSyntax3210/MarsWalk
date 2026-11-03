@@ -83,7 +83,7 @@ function mount() {
 
   loadStylesheet();
 
-  // On pages that already embed the chat panel (e.g. map.html has it inside
+  // On pages that already embed the chat panel (e.g. dashboard.html has it inside
   // #assistant-panel), only inject the FAB button. The chat markup is already
   // in the DOM and ruby-widget.js will find it by its element IDs.
   const chatAlreadyInPage = Boolean(document.getElementById("ruby-chat-form"));

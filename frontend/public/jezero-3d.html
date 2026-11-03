@@ -14,8 +14,8 @@
   <body>
     <canvas id="jezero-scene" aria-label="Three-dimensional Jezero Crater terrain built from a CTX stereo elevation model"></canvas>
     <section class="viewer-panel" id="viewer-panel" aria-label="Jezero 3D controls">
-      <a class="viewer-back" href="./map.html">← MarsWalk workspace</a>
-      <div class="viewer-title"><span>REAL MARS TERRAIN · JEZERO CRATER</span><h1>Explore Jezero in 3D</h1><p>Surface texture and terrain shape come from an aligned CTX image and stereo elevation model.</p></div>
+      <a class="viewer-back" href="./dashboard.html">← MarsWalk workspace</a>
+      <div class="viewer-title"><span>JEZERO · 5 × 5 KM WALKABLE TEST AREA</span><h1>Jezero terrain prototype</h1><p>Explore a local patch of Mars in real scale using the aligned CTX image and stereo elevation model.</p></div>
       <div class="viewer-actions">
         <button id="motion-button" type="button">Enable phone motion</button>
         <button id="stereo-button" type="button" aria-pressed="false">Split-screen: off</button>
@@ -32,7 +32,7 @@
           <li>For Android browser motion, connect USB with debugging enabled, run <code>adb reverse tcp:5000 tcp:5000</code>, then open <code>http://localhost:5000/jezero-3d.html</code>.</li>
         </ul>
       </details>
-      <div class="data-note"><strong>About this view</strong><span id="data-resolution">Loading terrain metadata…</span><span>Height is visually exaggerated 2×; the scene is a regional preview, not a rover-scale simulator.</span><span>Data: USGS Astrogeology CTX stereo terrain and orthorectified image.</span></div>
+      <div class="data-note"><strong>About this view</strong><span id="data-resolution">Loading terrain metadata…</span><span>Elevation and distances use 1:1 scale. Terrain is sampled from the available CTX DTM, so small rocks are not modeled.</span><span>Data: USGS Astrogeology CTX stereo terrain and orthorectified image.</span></div>
     </section>
     <div class="viewer-readout"><span>HEADING</span><strong id="heading-value">0°</strong><span id="position-value">Jezero Crater</span></div>
     <div class="touch-pad" id="touch-pad" aria-label="Touch movement controls">
@@ -46,3 +46,4 @@
     <script type="module" src="./js/ruby-assistant.js"></script>
   </body>
 </html>
+

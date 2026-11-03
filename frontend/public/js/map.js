@@ -2951,7 +2951,7 @@ document
 document.querySelector("#show-global-map").addEventListener("click", () => {
   mars2DMap.setView([0, 0], 3);
 });
-// Deep links: map.html#route, #mission, #ai-help, #ar-engine.
+// Deep links: dashboard.html#route, #mission, #ai-help, #ar-engine.
 function openViewFromHash() {
   const view = location.hash.slice(1);
   if (navItems.some((item) => item.dataset.view === view)) showMarsView(view);
