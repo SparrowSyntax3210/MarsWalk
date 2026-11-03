@@ -54,16 +54,14 @@ function runLookup(lat, lon) {
   });
 }
 
-router.get("/", async (req, res) => {
-  const lat = Number(req.query.lat);
-  const lon = Number(req.query.lon);
-  if (!Number.isFinite(lat) || !Number.isFinite(lon) || lat < -90 || lat > 90 || lon < -180 || lon > 180) {
-    return res.status(400).json({ error: "Provide latitude from -90 to 90 and longitude from -180 to 180." });
-  }
+/**
+ * Nearest feature-store cell for a coordinate, cached. Shared with Ruby so it
+ * can look up any place the user names. Rejects with an error carrying `status`.
+ */
+function lookupCell(lat, lon) {
   if (!fs.existsSync(pythonExe) || !fs.existsSync(lookupScript)) {
-    return res.status(503).json({ error: "The local feature-store lookup is not installed." });
+    return Promise.reject(Object.assign(new Error("The local feature-store lookup is not installed."), { status: 503 }));
   }
-
   // ~1 km cells: 0.005° keys reuse a lookup for repeat clicks in the same cell.
   const key = `${lat.toFixed(3)},${lon.toFixed(3)}`;
   if (!cache.has(key)) {
@@ -72,11 +70,21 @@ router.get("/", async (req, res) => {
     if (cache.size > CACHE_LIMIT) cache.delete(cache.keys().next().value);
     pending.catch(() => cache.delete(key));
   }
+  return cache.get(key);
+}
+
+router.get("/", async (req, res) => {
+  const lat = Number(req.query.lat);
+  const lon = Number(req.query.lon);
+  if (!Number.isFinite(lat) || !Number.isFinite(lon) || lat < -90 || lat > 90 || lon < -180 || lon > 180) {
+    return res.status(400).json({ error: "Provide latitude from -90 to 90 and longitude from -180 to 180." });
+  }
   try {
-    res.json(await cache.get(key));
+    res.json(await lookupCell(lat, lon));
   } catch (error) {
     res.status(error.status || 500).json({ error: error.message });
   }
 });
 
 module.exports = router;
+module.exports.lookupCell = lookupCell;

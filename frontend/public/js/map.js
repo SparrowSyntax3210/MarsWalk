@@ -2,6 +2,8 @@ import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { initMissionPlanner } from "./mission-planner.js";
+import { initRouteBriefing } from "./route-briefing.js";
+import { initPlaceBriefing } from "./place-briefing.js";
 
 const canvas3D = document.querySelector("#mars-scene");
 // The globe renders into its own stage inside the catalog column.
@@ -212,6 +214,9 @@ let routeEndMarker = null;
 let routeStartName = null;
 let routeEndName = null;
 let lastRoutePayload = null;
+// Assigned near the end of this file, but renderRouteState can run before that
+// during initial view setup, so it must be declared up here.
+let routeBriefing = null;
 let routeFocusRegion = null; // region chosen in the route search card
 let routeStatus = "draft"; // draft | calculating | calculated | stale | failed
 let plannedRouteLayer = null;
@@ -474,6 +479,8 @@ const isNum = (value) => typeof value === "number" && Number.isFinite(value);
 
 // The selection currently shown in the info panel.
 let selection = null;
+// Assigned near the end of this file; updatePointData can run before that.
+let placeBriefing = null;
 
 function pointLayer(id) {
   const point = selection?.point;
@@ -1049,6 +1056,10 @@ async function updatePointData(lat, lon, titleText, options = {}) {
   renderSelectionHeader();
   renderSelectionData();
   syncCatalogActive();
+  // A new location invalidates any briefing already on screen.
+  placeBriefing?.setAvailable(true);
+  placeBriefing?.reset();
+  window.RubyAssistant?.refreshContext();
 
   const query = `lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lon)}`;
   const apply = (key) => (result) => {
@@ -1065,6 +1076,7 @@ async function updatePointData(lat, lon, titleText, options = {}) {
     ),
   ]);
   if (reqId !== currentState.reqId) return;
+  window.RubyAssistant?.refreshContext(); // the data has arrived; the chat chip can say so
 
   const pointOk = selection.point && !selection.point.error;
   const cellOk = selection.cell && !selection.cell.error;
@@ -2658,6 +2670,8 @@ function renderRouteState() {
   warningEl.hidden = !warnings.length;
 
   rid("route-to-mission").disabled = !payload || !(distance > 0);
+  // Ruby can only describe a route that actually has length.
+  routeBriefing?.setEnabled(Boolean(payload) && distance > 0);
   if (routeStatus !== "calculating") {
     routePlanButton.textContent = payload
       ? "Recalculate route"
@@ -2927,6 +2941,70 @@ function openViewFromHash() {
 }
 window.addEventListener("hashchange", openViewFromHash);
 openViewFromHash();
+// What Ruby is told about the selected Explore location: the payloads the panel
+// already fetched, so Ruby adds no extra lookups. Shared by the place briefing
+// and the chat widget so both always describe the same thing.
+function exploreSelectionSnapshot() {
+  if (!selection) return null;
+  // PENDING is a sentinel while a request is in flight, and an { error }
+  // object means that service failed; neither is narratable.
+  const usable = (value) =>
+    value && value !== PENDING && typeof value === "object" && !value.error ? value : null;
+  return {
+    lat: selection.lat,
+    lon: selection.lon,
+    title: selection.title,
+    feature: selection.feature
+      ? {
+          name: selection.feature.name,
+          type: selection.feature.type,
+          diameterKm: selection.feature.diameterKm,
+        }
+      : null,
+    region: selection.region
+      ? { name: selection.region.name, tagline: selection.region.tagline }
+      : null,
+    nearest: selection.nearest
+      ? {
+          name: selection.nearest.feature?.name,
+          distanceKm: selection.nearest.distanceKm,
+          inside: selection.nearest.inside,
+        }
+      : null,
+    point: usable(selection.point),
+    cell: usable(selection.cell),
+    // Lets Ruby say "still loading" instead of "no data" while requests run.
+    status: selection.point === PENDING || selection.cell === PENDING ? "loading" : "ready",
+  };
+}
+
+// Spoken briefing for the selected Explore location.
+placeBriefing = initPlaceBriefing({ getSelection: exploreSelectionSnapshot });
+
+// The floating Ruby assistant (js/ruby-assistant.js) asks for the Explore
+// selection through this hook, so it answers about the place the user picked.
+window.MarsWalkRuby = { getSelection: exploreSelectionSnapshot };
+
+// Spoken route briefing. The backend does the phrasing; this supplies the
+// context only the UI knows: endpoint labels, traverse assumptions, and the
+// named features the route passes.
+routeBriefing = initRouteBriefing({
+  getRoute: () => lastRoutePayload,
+  getContext: () => {
+    const { speed, hoursPerSol } = traverseAssumptions();
+    return {
+      mode: lastRoutePayload?.mode || routeModeSelect.value || "balanced",
+      startName: routeStartName,
+      endName: routeEndName,
+      speedKmh: speed,
+      drivingHoursPerSol: hoursPerSol,
+      nearbyFeatures: lastRoutePayload
+        ? namedFeaturesNearRoute(lastRoutePayload).slice(0, 4).map((feature) => feature.name)
+        : [],
+    };
+  },
+});
+
 initMissionPlanner({
   setEndpoint: setRouteEndpoint,
   renderRoute: renderMarsRoute,

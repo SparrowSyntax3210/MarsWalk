@@ -936,3 +936,34 @@ body { font-family: var(--x-sans); color: var(--x-text); background: var(--x-bg)
 @media (max-width: 620px) {
   .workspace-layout[data-view="route"] .route-region-search { top: 118px; width: calc(100% - 24px); max-height: 46%; }
 }
+
+/* Ruby's spoken route briefing */
+.route-briefing { margin-top: 10px; padding: 11px 12px; border-left: 2px solid #41d0ad; border-radius: 7px; background: rgba(65, 208, 173, .07); }
+.route-briefing.has-warning { border-left-color: #ffc062; background: rgba(255, 192, 98, .09); }
+.route-briefing-text { margin: 0; color: #e6f7f1; font-size: 12px; line-height: 1.55; }
+.route-briefing.has-warning .route-briefing-text { color: #ffeacd; }
+.route-briefing-text:empty { display: none; }
+.route-briefing-actions { display: flex; align-items: center; gap: 10px; margin-top: 9px; flex-wrap: wrap; }
+.route-briefing-actions:empty { display: none; }
+.route-briefing-status { color: #8fd8c3; font-size: 10px; line-height: 1.4; }
+.route-briefing-status.is-error { color: #ffb0bb; }
+#route-explain-button { margin-top: 7px; }
+
+/* Ruby's spoken briefing for the selected Explore location */
+.place-briefing { margin: 12px 0; padding: 11px 12px; border: 1px solid rgba(65, 208, 173, .26); border-radius: 9px; background: rgba(65, 208, 173, .06); }
+.place-briefing-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.place-briefing-head .section-kicker { margin: 0; }
+.place-briefing-text { margin: 9px 0 0; color: #e6f7f1; font-size: 12px; line-height: 1.55; }
+.place-briefing-text:empty { display: none; }
+.place-briefing-topics { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 9px; }
+.place-briefing-topics:empty { display: none; }
+.place-briefing-topic { padding: 5px 9px; border: 1px solid rgba(255, 255, 255, .16); border-radius: 999px; background: rgba(255, 255, 255, .05); color: #d8f3ea; font-size: 10px; cursor: pointer; }
+.place-briefing-topic:hover { border-color: #41d0ad; color: #fff; }
+.place-briefing-topic.is-active { border-color: #41d0ad; background: rgba(65, 208, 173, .18); color: #fff; }
+.place-briefing-topic:focus-visible, #place-briefing-play:focus-visible { outline: 2px solid #41d0ad; outline-offset: 2px; }
+.place-briefing-status { display: block; margin-top: 8px; color: #8fd8c3; font-size: 10px; line-height: 1.4; }
+.place-briefing-status:empty { display: none; }
+.place-briefing-status.is-error { color: #ffb0bb; }
+
+/* Ruby's floating button (css/ruby-assistant.css) sits bottom-right; keep the last controls in the details panel scrollable above it. */
+.workspace-layout #explore-info .info-scroll { padding-bottom: 92px; }

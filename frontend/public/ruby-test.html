@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#140d0a" />
+    <title>MarsWalk · Ruby Voice Test</title>
+    <link rel="stylesheet" href="./css/ruby-test.css" />
+    <script type="module" src="./js/ruby-test.js"></script>
+  </head>
+  <body>
+    <main class="ruby-panel">
+      <a class="ruby-back" href="./map.html">← MarsWalk</a>
+      <header class="ruby-title">
+        <span>RUBY · VOICE PROTOTYPE</span>
+        <h1>Talk to Ruby</h1>
+        <p>Ask for a greeting, the elevation at a location (for example "elevation at 18.4 N 77.5 E" or "elevation of Jezero"), or a basic Mars fact.</p>
+      </header>
+
+      <div class="ruby-status" id="voice-status" role="status" aria-live="polite">Checking Ruby's voice server…</div>
+
+      <ol class="ruby-log" id="chat-log" aria-live="polite" aria-label="Conversation with Ruby"></ol>
+
+      <form class="ruby-form" id="ask-form">
+        <label class="visually-hidden" for="ask-input">Message for Ruby</label>
+        <input id="ask-input" name="message" type="text" maxlength="500" autocomplete="off" placeholder="Hi Ruby, what's the gravity on Mars?" required />
+        <button type="submit">Send</button>
+        <button type="button" id="mic-button" aria-pressed="false" aria-label="Speak to Ruby">🎙 Talk</button>
+      </form>
+
+      <label class="ruby-toggle"><input type="checkbox" id="speak-toggle" checked /> Speak replies in Ruby's voice</label>
+      <p class="ruby-limit">Prototype only: rule-based answers, English only. The voice is generated on this machine by a GPT-SoVITS model fine-tuned on Ruby's own recordings. The first reply after startup takes about 15 seconds while the model warms up; later replies take about 3 seconds.</p>
+    </main>
+  </body>
+</html>

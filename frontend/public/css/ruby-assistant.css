@@ -1,0 +1,135 @@
+/* =====================================================================
+   Ruby: the floating assistant, shown on every MarsWalk page.
+   Loaded by js/ruby-assistant.js. Self-contained: it does not rely on any
+   page's own variables, so every page gets the same look.
+   ===================================================================== */
+.ruby-fab,
+.ruby-chat {
+  --rb-panel: linear-gradient(158deg, #1d150f, #140e0a);
+  --rb-text: #f2edda;
+  --rb-dim: rgba(242, 237, 218, 0.68);
+  --rb-faint: rgba(242, 237, 218, 0.5);
+  --rb-border: rgba(242, 237, 218, 0.12);
+  --rb-border-strong: rgba(242, 237, 218, 0.24);
+  --rb-ember: #ff9d42;
+  --rb-safe: #43d6a3;
+  --rb-caution: #ffd34f;
+  --rb-mono: "DM Mono", Consolas, monospace;
+  --rb-sans: "Manrope", system-ui, sans-serif;
+  /* Distance from the bottom edge. Pages with their own bottom-right controls
+     (the Jezero 3D touch pad) raise it through html.ruby-lift. */
+  --rb-bottom: max(22px, env(safe-area-inset-bottom));
+  --rb-right: max(22px, env(safe-area-inset-right));
+}
+html.ruby-lift .ruby-fab,
+html.ruby-lift .ruby-chat { --rb-bottom: 134px; }
+
+/* Immersive modes use the whole screen; Ruby stays out of the way there. */
+body.headset-mode .ruby-fab,
+body.headset-mode .ruby-chat,
+body.stereo .ruby-fab,
+body.stereo .ruby-chat { display: none; }
+
+.ruby-visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* ---- The button: Ruby's mascot ---------------------------------------- */
+.ruby-fab { position: fixed; right: var(--rb-right); bottom: var(--rb-bottom); z-index: 2000; display: block; width: 64px; height: 64px; padding: 0; border: 2px solid rgba(255, 157, 66, 0.7); border-radius: 50%; background: #1b110a; box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5), 0 0 0 5px rgba(255, 157, 66, 0.1); cursor: pointer; transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease; }
+.ruby-fab[hidden] { display: none; }
+.ruby-fab:hover { transform: translateY(-2px) scale(1.05); border-color: var(--rb-ember); box-shadow: 0 16px 34px rgba(0, 0, 0, 0.55), 0 0 0 7px rgba(255, 157, 66, 0.16); }
+.ruby-fab:active { transform: scale(0.97); }
+.ruby-fab:focus-visible { outline: 3px solid var(--rb-safe); outline-offset: 3px; }
+.ruby-fab[aria-expanded="true"] { border-color: var(--rb-safe); box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5), 0 0 0 5px rgba(67, 214, 163, 0.14); }
+
+/* The picture is clipped to a circle; object-fit keeps the mascot undistorted. */
+.ruby-fab-img { display: block; width: 100%; height: 100%; border-radius: 50%; object-fit: cover; object-position: center; pointer-events: none; user-select: none; -webkit-user-drag: none; }
+/* Shown only if the picture file is missing, so the button never looks broken. */
+.ruby-gem { display: none; width: 100%; height: 100%; padding: 14px; color: var(--rb-ember); }
+.ruby-fab.is-fallback .ruby-fab-img,
+.ruby-chat-avatar.is-fallback .ruby-fab-img { display: none; }
+.ruby-fab.is-fallback .ruby-gem,
+.ruby-chat-avatar.is-fallback .ruby-gem { display: block; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .ruby-fab:not([aria-expanded="true"])::after { content: ""; position: absolute; inset: -3px; border-radius: 50%; border: 2px solid rgba(255, 157, 66, 0.5); animation: ruby-ring 3.2s ease-out infinite; pointer-events: none; }
+  .ruby-chat:not([hidden]) { animation: ruby-pop 0.18s ease-out; }
+}
+@keyframes ruby-ring { 0% { transform: scale(1); opacity: 0.7; } 70%, 100% { transform: scale(1.45); opacity: 0; } }
+@keyframes ruby-pop { from { opacity: 0; transform: translateY(10px) scale(0.98); } }
+
+/* ---- The chat panel ---------------------------------------------------- */
+.ruby-chat { position: fixed; right: var(--rb-right); bottom: calc(var(--rb-bottom) + 76px); z-index: 2001; display: flex; flex-direction: column; box-sizing: border-box; width: min(390px, calc(100vw - 28px)); height: min(580px, calc(100dvh - var(--rb-bottom) - 100px)); overflow: hidden; border: 1px solid var(--rb-border-strong); border-radius: 16px; background: var(--rb-panel), #140e0a; box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6); color: var(--rb-text); font-family: var(--rb-sans); font-size: 13px; text-align: left; }
+.ruby-chat *,
+.ruby-chat *::before,
+.ruby-chat *::after { box-sizing: border-box; }
+.ruby-chat[hidden] { display: none; }
+
+.ruby-chat-head { display: flex; align-items: center; gap: 10px; flex: 0 0 auto; padding: 12px 12px 12px 14px; border-bottom: 1px solid var(--rb-border); background: rgba(255, 157, 66, 0.06); }
+.ruby-chat-avatar { flex: 0 0 auto; width: 38px; height: 38px; overflow: hidden; border: 1px solid rgba(255, 157, 66, 0.55); border-radius: 50%; background: #1b110a; }
+.ruby-chat-avatar .ruby-gem { padding: 8px; }
+.ruby-chat-titles { flex: 1 1 auto; min-width: 0; }
+.ruby-chat-titles h2 { margin: 0; color: var(--rb-text); font-family: var(--rb-sans); font-size: 15px; font-weight: 700; letter-spacing: -0.01em; }
+.ruby-chat-context { margin: 2px 0 0; overflow: hidden; color: var(--rb-dim); font: 500 10.5px var(--rb-mono); letter-spacing: 0.02em; text-overflow: ellipsis; white-space: nowrap; }
+.ruby-chat-context.is-ready { color: var(--rb-safe); }
+.ruby-chat-context.is-loading { color: var(--rb-caution); }
+
+.ruby-icon-button { display: grid; place-items: center; flex: 0 0 auto; width: 32px; height: 32px; padding: 0; border: 1px solid transparent; border-radius: 8px; background: transparent; color: var(--rb-dim); cursor: pointer; }
+.ruby-icon-button svg { width: 18px; height: 18px; }
+.ruby-icon-button:hover:not(:disabled) { background: rgba(242, 237, 218, 0.08); color: var(--rb-text); }
+.ruby-icon-button:focus-visible { outline: 2px solid var(--rb-ember); outline-offset: 1px; }
+.ruby-icon-button:disabled { opacity: 0.4; cursor: not-allowed; }
+.ruby-icon-button[aria-pressed="true"] { border-color: rgba(67, 214, 163, 0.5); background: rgba(67, 214, 163, 0.12); color: var(--rb-safe); }
+.ruby-icon-button:not([aria-pressed="true"]) .ruby-voice-waves { opacity: 0.25; }
+.ruby-icon-button[hidden] { display: none; }
+
+.ruby-chat-log { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; gap: 10px; padding: 14px; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: rgba(242, 237, 218, 0.25) transparent; }
+.ruby-msg { display: flex; flex-direction: column; gap: 5px; max-width: 88%; }
+.ruby-msg-user { align-self: flex-end; align-items: flex-end; }
+.ruby-msg-ruby { align-self: flex-start; align-items: flex-start; }
+.ruby-bubble { margin: 0; padding: 9px 12px; border-radius: 13px; font-size: 13px; line-height: 1.5; overflow-wrap: anywhere; white-space: pre-wrap; }
+.ruby-msg-user .ruby-bubble { border-bottom-right-radius: 4px; background: #3a2416; border: 1px solid rgba(255, 157, 66, 0.3); }
+.ruby-msg-ruby .ruby-bubble { border-bottom-left-radius: 4px; background: rgba(242, 237, 218, 0.07); border: 1px solid var(--rb-border); }
+.ruby-msg-error .ruby-bubble { border-color: rgba(255, 107, 74, 0.5); background: rgba(255, 107, 74, 0.1); }
+.ruby-msg-meta { display: flex; align-items: center; gap: 8px; min-height: 18px; }
+.ruby-source { padding: 1px 7px; border: 1px solid var(--rb-border); border-radius: 999px; color: var(--rb-faint); font: 500 9.5px var(--rb-mono); letter-spacing: 0.06em; text-transform: uppercase; }
+.ruby-source[data-source="data"],
+.ruby-source[data-source="glossary"],
+.ruby-source[data-source="facts"] { border-color: rgba(67, 214, 163, 0.4); color: var(--rb-safe); }
+.ruby-source[data-source="hybrid"] { border-color: rgba(143, 216, 195, 0.45); color: #8fd8c3; }
+.ruby-source[data-source="ai"] { border-color: rgba(255, 211, 79, 0.45); color: var(--rb-caution); }
+.ruby-play { display: inline-flex; align-items: center; gap: 4px; padding: 1px 7px; border: 1px solid var(--rb-border); border-radius: 999px; background: transparent; color: var(--rb-dim); font: 500 10px var(--rb-sans); cursor: pointer; }
+.ruby-play:hover { border-color: var(--rb-border-strong); color: var(--rb-text); }
+.ruby-play[aria-busy="true"] { color: var(--rb-caution); cursor: progress; }
+
+.ruby-typing { display: inline-flex; gap: 4px; padding: 12px 14px; }
+.ruby-typing i { width: 6px; height: 6px; border-radius: 50%; background: var(--rb-dim); }
+@media (prefers-reduced-motion: no-preference) {
+  .ruby-typing i { animation: ruby-dot 1.2s infinite ease-in-out; }
+  .ruby-typing i:nth-child(2) { animation-delay: 0.15s; }
+  .ruby-typing i:nth-child(3) { animation-delay: 0.3s; }
+}
+@keyframes ruby-dot { 0%, 80%, 100% { opacity: 0.25; transform: translateY(0); } 40% { opacity: 1; transform: translateY(-3px); } }
+
+.ruby-chat-chips { display: flex; flex: 0 0 auto; gap: 6px; padding: 8px 14px; overflow-x: auto; border-top: 1px solid var(--rb-border); scrollbar-width: none; }
+.ruby-chat-chips::-webkit-scrollbar { display: none; }
+.ruby-chat-chips:empty { display: none; }
+.ruby-chip { flex: 0 0 auto; padding: 5px 10px; border: 1px solid var(--rb-border-strong); border-radius: 999px; background: rgba(242, 237, 218, 0.04); color: var(--rb-text); font: 500 11px var(--rb-sans); white-space: nowrap; cursor: pointer; }
+.ruby-chip:hover:not(:disabled) { border-color: var(--rb-ember); background: rgba(255, 157, 66, 0.1); }
+.ruby-chip:disabled { opacity: 0.45; cursor: not-allowed; }
+
+.ruby-chat-form { display: flex; align-items: center; gap: 6px; flex: 0 0 auto; margin: 0; padding: 10px 12px; border-top: 1px solid var(--rb-border); }
+.ruby-chat-form input { flex: 1 1 auto; min-width: 0; height: 38px; margin: 0; padding: 0 12px; border: 1px solid var(--rb-border-strong); border-radius: 10px; background: rgba(0, 0, 0, 0.3); color: var(--rb-text); font: 13px var(--rb-sans); }
+.ruby-chat-form input::placeholder { color: var(--rb-faint); }
+.ruby-chat-form input:focus-visible { outline: 2px solid var(--rb-ember); outline-offset: 1px; }
+.ruby-send { height: 38px; padding: 0 14px; border: 1px solid rgba(255, 157, 66, 0.6); border-radius: 10px; background: linear-gradient(180deg, #d9772f, #b45a1f); color: #1a0e06; font: 700 12.5px var(--rb-sans); cursor: pointer; }
+.ruby-send:hover:not(:disabled) { filter: brightness(1.1); }
+.ruby-send:disabled { opacity: 0.5; cursor: not-allowed; }
+.ruby-chat-note { margin: 0; padding: 0 14px 10px; color: var(--rb-faint); font-size: 10px; line-height: 1.4; }
+
+@media (max-width: 520px) {
+  .ruby-fab,
+  .ruby-chat { --rb-right: max(14px, env(safe-area-inset-right)); --rb-bottom: max(14px, env(safe-area-inset-bottom)); }
+  html.ruby-lift .ruby-fab,
+  html.ruby-lift .ruby-chat { --rb-bottom: 116px; }
+  .ruby-fab { width: 58px; height: 58px; }
+  .ruby-chat { right: 8px; bottom: calc(var(--rb-bottom) + 70px); width: calc(100vw - 16px); height: min(560px, calc(100dvh - var(--rb-bottom) - 90px)); }
+}

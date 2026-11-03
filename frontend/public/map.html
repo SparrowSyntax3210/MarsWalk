@@ -207,6 +207,15 @@
         <div class="info-scroll">
           <section id="info-mission" class="info-mission" hidden></section>
           <div class="info-glance" id="info-glance"></div>
+          <div class="place-briefing" id="place-briefing" hidden>
+            <div class="place-briefing-head">
+              <span class="section-kicker">RUBY'S BRIEFING</span>
+              <button type="button" class="info-action" id="place-briefing-play">Explain this place</button>
+            </div>
+            <p class="place-briefing-text" id="place-briefing-text"></p>
+            <div class="place-briefing-topics" id="place-briefing-topics"></div>
+            <small class="place-briefing-status" id="place-briefing-status" role="status" aria-live="polite"></small>
+          </div>
           <div id="info-sections" class="info-sections"></div>
           <div class="info-actions">
             <button type="button" class="info-action" id="info-copy">Copy coordinates</button>
@@ -269,6 +278,14 @@
 
         <button id="route-plan-button" class="route-cta" type="button" disabled>Calculate route</button>
         <button id="route-to-mission" class="route-secondary" type="button" disabled>Send to Mission Planner →</button>
+        <button id="route-explain-button" class="route-secondary" type="button" disabled>Ask Ruby to explain this route</button>
+        <div class="route-briefing" id="route-briefing" hidden>
+          <p class="route-briefing-text" id="route-briefing-text"></p>
+          <div class="route-briefing-actions">
+            <button id="route-briefing-more" class="global-map-button" type="button" hidden>Tell me more</button>
+            <small class="route-briefing-status" id="route-briefing-status" role="status" aria-live="polite"></small>
+          </div>
+        </div>
         <p class="route-hint" id="route-hint">Choose a start and destination to begin.</p>
 
         <details class="route-advanced">
@@ -338,6 +355,7 @@
       </main>
     </div>
 
+    <script type="module" src="./js/ruby-assistant.js"></script>
     <script type="module" src="./js/map.js"></script>
   </body>
 </html>

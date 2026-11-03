@@ -289,13 +289,12 @@ const plannedLayers = [
   },
 ];
 
-router.get("/", async (req, res) => {
-  const coordinates = parseCoordinates(req.query);
-  if (!coordinates) {
-    return res.status(400).json({ error: "Provide latitude from -90 to 90 and longitude from -180 to 180." });
-  }
-
-  const { lat, lon } = coordinates;
+/**
+ * Everything the Explore panel shows for one coordinate. Extracted from the
+ * route handler so Ruby can look up any place the user names, not only the one
+ * selected on the map.
+ */
+async function buildPointResponse(lat, lon) {
   const gridSpacingMeters = MARS_RADIUS_METERS * (DEGREE_RESOLUTION * Math.PI / 180);
   const deltaLat = DEGREE_RESOLUTION;
   const deltaLon = DEGREE_RESOLUTION;
@@ -398,7 +397,7 @@ router.get("/", async (req, res) => {
   const resultStatus = center === null || failures
     ? (hasAnyReturnedLayer ? "partial" : "unavailable")
     : "available";
-  res.json({
+  return {
     coordinates: {
       latitude: lat,
       longitude: lon,
@@ -410,7 +409,19 @@ router.get("/", async (req, res) => {
     queriedAt: new Date().toISOString(),
     layers,
     coverageNote: "Coordinate samples, regional map overlays, and station observations have different coverage and scales. Map-only products are visual context; Gale REMS values are station reports, and missing measurements are not estimated.",
-  });
+  };
+}
+
+router.get("/", async (req, res) => {
+  const coordinates = parseCoordinates(req.query);
+  if (!coordinates) {
+    return res.status(400).json({ error: "Provide latitude from -90 to 90 and longitude from -180 to 180." });
+  }
+  res.json(await buildPointResponse(coordinates.lat, coordinates.lon));
 });
 
 module.exports = router;
+// Shared with services/mars-elevation.js and Ruby, so every lookup uses the
+// same working LERC tile sampler and tile cache.
+module.exports.sampleElevation = sampleElevation;
+module.exports.buildPointResponse = buildPointResponse;

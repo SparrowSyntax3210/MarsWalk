@@ -1,0 +1,27 @@
+* { box-sizing: border-box; }
+html, body { min-height: 100%; margin: 0; background: radial-gradient(circle at 70% 20%, #3a1a0e, #170e0a 60%); color: #f5e7dc; font-family: Inter, Segoe UI, Arial, sans-serif; }
+.ruby-panel { width: min(640px, calc(100vw - 28px)); margin: 24px auto; padding: 20px; border: 1px solid rgba(241, 153, 91, .28); border-radius: 12px; background: rgba(20, 13, 10, .87); }
+.ruby-back { color: #ffbd8a; text-decoration: none; font-size: 13px; }
+.ruby-title { margin-top: 14px; }
+.ruby-title > span { color: #c58b64; font-size: 10px; font-weight: 700; letter-spacing: .15em; }
+.ruby-title h1 { margin: 6px 0; color: #fff4ec; font-size: 26px; }
+.ruby-title p { margin: 0; color: #b8a18d; font-size: 14px; line-height: 1.5; }
+.ruby-status { margin-top: 14px; padding: 10px; border-left: 2px solid #db8b55; color: #d7c3b1; background: rgba(255, 255, 255, .035); font-size: 13px; line-height: 1.45; }
+.ruby-status.is-error { border-color: #ff6476; color: #ffd1d7; }
+.ruby-status.is-good { border-color: #36d3a4; color: #d3fff1; }
+.ruby-log { list-style: none; margin: 14px 0 0; padding: 0; display: grid; gap: 8px; max-height: 50vh; overflow-y: auto; }
+.ruby-log li { padding: 10px 12px; border-radius: 9px; font-size: 14px; line-height: 1.5; }
+.ruby-log .from-user { justify-self: end; max-width: 85%; background: #2a1a12; color: #f3ddcb; }
+.ruby-log .from-ruby { justify-self: start; max-width: 90%; background: #143c34; color: #d8fff4; }
+.ruby-log .from-ruby small { display: block; margin-top: 4px; color: #8fd8c3; font-size: 11px; }
+.ruby-form { display: grid; grid-template-columns: 1fr auto auto; gap: 8px; margin-top: 14px; }
+.ruby-form input { min-height: 42px; padding: 8px 12px; border: 1px solid rgba(224, 139, 82, .35); border-radius: 7px; background: #1e130e; color: #fff4ec; font-size: 14px; }
+.ruby-form button { min-height: 42px; padding: 8px 14px; border: 1px solid rgba(224, 139, 82, .35); border-radius: 7px; background: #2a1a12; color: #f3ddcb; font-size: 14px; cursor: pointer; }
+.ruby-form button:hover { border-color: #e08b52; }
+.ruby-form button[aria-pressed="true"] { border-color: #41d0ad; background: #143c34; color: #d8fff4; }
+.ruby-form button:disabled { opacity: .5; cursor: not-allowed; }
+.ruby-form input:focus-visible, .ruby-form button:focus-visible, .ruby-toggle input:focus-visible { outline: 2px solid #ffbd8a; outline-offset: 2px; }
+.ruby-toggle { display: flex; align-items: center; gap: 8px; margin-top: 12px; color: #e9d5c4; font-size: 13px; }
+.ruby-limit { margin: 12px 0 0; color: #a08a78; font-size: 12px; line-height: 1.4; }
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+@media (max-width: 480px) { .ruby-form { grid-template-columns: 1fr 1fr; } .ruby-form input { grid-column: 1 / -1; } }

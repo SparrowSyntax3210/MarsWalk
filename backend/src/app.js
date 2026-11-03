@@ -6,6 +6,7 @@ const pointRoutes = require("./routes/point");
 const routePlanRoutes = require("./routes/plan");
 const visionReviewRoutes = require("./routes/vision-review");
 const cellRoutes = require("./routes/cell");
+const rubyRoutes = require("./routes/ruby");
 
 const app = express();
 const publicDirectory = path.resolve(__dirname, "../../frontend/public");
@@ -22,6 +23,7 @@ app.use("/api/point", pointRoutes);
 app.use("/api/cell", cellRoutes);
 app.use("/api/route", routePlanRoutes);
 app.use("/api/vision-review", visionReviewRoutes);
+app.use("/api/ruby", rubyRoutes);
 app.use(express.static(publicDirectory));
 
 app.use((error, _req, res, _next) => {

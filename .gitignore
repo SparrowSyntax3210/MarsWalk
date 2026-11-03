@@ -45,3 +45,25 @@ node_modules/
 Thumbs.db
 Desktop.ini
 desktop.ini
+# Ruby voice: derived reference WAVs, generated audio and logs stay local.
+# Everything here is reproducible from the scripts plus the source AAC clips.
+/python/ruby_voice/voice_refs/
+/python/ruby_voice/samples*/
+/python/ruby_voice/*.wav
+/python/ruby_voice/*.log
+/python/ruby_voice/__pycache__/
+
+# GPT-SoVITS: upstream clone, 4 GB pretrained weights, dataset and trained
+# voice checkpoints all stay on the developer machine.
+/python/gpt_sovits/
+/python/ruby_voice/dataset/
+
+# Scratch space and local test output.
+/tmp/
+
+# Ruby 3D model: unfinished draft stays local (source, renders, GLB, profile).
+/tools/ruby-model/
+/frontend/public/assets/ruby-phoenix.glb
+
+# Ruby's source voice recordings stay local, not published with the repo.
+/frontend/public/assets/AI voice*.aac
