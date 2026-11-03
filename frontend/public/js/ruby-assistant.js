@@ -83,10 +83,30 @@ function mount() {
 
   loadStylesheet();
 
-  const holder = document.createElement("div");
-  holder.innerHTML = markup(MASCOT_URL);
-  const nodes = [...holder.children];
-  document.body.append(...nodes);
+  // On pages that already embed the chat panel (e.g. map.html has it inside
+  // #assistant-panel), only inject the FAB button. The chat markup is already
+  // in the DOM and ruby-widget.js will find it by its element IDs.
+  const chatAlreadyInPage = Boolean(document.getElementById("ruby-chat-form"));
+
+  if (chatAlreadyInPage) {
+    const fab = document.createElement("button");
+    fab.type = "button";
+    fab.className = "ruby-fab";
+    fab.id = "ruby-fab";
+    fab.setAttribute("aria-label", "Ask Ruby, the Mars assistant");
+    fab.title = "Ask Ruby";
+    fab.setAttribute("aria-haspopup", "dialog");
+    fab.setAttribute("aria-expanded", "false");
+    fab.setAttribute("aria-controls", "ruby-chat");
+    fab.innerHTML =
+      `<img class="ruby-fab-img" src="${MASCOT_URL}" alt="" width="64" height="64" decoding="async" draggable="false" />${GEM_SVG}`;
+    document.body.append(fab);
+  } else {
+    const holder = document.createElement("div");
+    holder.innerHTML = markup(MASCOT_URL);
+    document.body.append(...holder.children);
+  }
+
   guardImages(document.body);
 
   // The Jezero 3D page keeps its movement pad in the bottom-right corner.
@@ -97,10 +117,11 @@ function mount() {
       try {
         return window.MarsWalkRuby?.getSelection?.() ?? null;
       } catch {
-        return null; // a page's own selection code must never break the chat
+        return null;
       }
     },
     hasSelectionSource: () => typeof window.MarsWalkRuby?.getSelection === "function",
+    inline: chatAlreadyInPage,
   });
 }
 

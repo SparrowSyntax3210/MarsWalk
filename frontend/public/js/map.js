@@ -1398,6 +1398,9 @@ function renderMarsRoute(payload) {
   const fallbackWarning = payload.terrain_data?.fallback_reason
     ? " · CAUTION: higher-resolution terrain rejected an endpoint; coarser fallback used"
     : "";
+  const localBufferNote = payload.terrain_data?.search_margin_constrained
+    ? ` · local DTM search buffer ${(payload.terrain_data.search_margin_m / 1000).toFixed(1)} km (limited by footprint)`
+    : "";
   const visionNote = payload.vision_model?.requested
     ? payload.vision_model?.status?.startsWith("used_")
       ? " · experimental vision cost · " +
@@ -1422,6 +1425,7 @@ function renderMarsRoute(payload) {
     snappedEnd.snap_distance_km +
     " km" +
     fallbackWarning +
+    localBufferNote +
     visionNote +
     ".";
   lastRoutePayload = payload;
@@ -1462,7 +1466,7 @@ async function calculateMarsRoute(options = {}) {
         use_vision_model:
           options.useVision ?? Boolean(routeVisionToggle?.checked),
         vision_weight:
-          (options.useVision ?? Boolean(routeVisionToggle?.checked)) ? 0.15 : 0,
+          (options.useVision ?? Boolean(routeVisionToggle?.checked)) ? 0.25 : 0,
         ...(Number.isFinite(options.maxSlope)
           ? { max_slope_deg: options.maxSlope }
           : {}),
@@ -2358,6 +2362,7 @@ const arPanel = document.querySelector("#ar-panel");
 const VIEW_HEADLINES = {
   explore: "Choose a region. Read the ground.",
   route: "Compare options before committing.",
+  "ai-help": "Ask Ruby anything about Mars.",
 };
 
 function showMarsView(view) {
@@ -2391,6 +2396,18 @@ function showMarsView(view) {
   routePanel.hidden = view !== "route";
   assistantPanel.hidden = view !== "ai-help";
   arPanel.hidden = view !== "ar-engine";
+
+  // When AI Help is active, Ruby is displayed inline in the panel; the
+  // floating button is redundant and visually clutters the corner.
+  const fab = document.getElementById("ruby-fab");
+  if (fab) fab.hidden = view === "ai-help";
+
+  if (view === "ai-help") {
+    window.RubyAssistant?.refreshContext();
+    // Defer open() by one frame so the panel is visible before
+    // welcome() tries to focus the input.
+    requestAnimationFrame(() => window.RubyAssistant?.open?.());
+  }
   requestAnimationFrame(() => {
     mars2DMap.invalidateSize({ pan: false });
     resizeScene();
@@ -2984,6 +3001,11 @@ placeBriefing = initPlaceBriefing({ getSelection: exploreSelectionSnapshot });
 // The floating Ruby assistant (js/ruby-assistant.js) asks for the Explore
 // selection through this hook, so it answers about the place the user picked.
 window.MarsWalkRuby = { getSelection: exploreSelectionSnapshot };
+
+// The inline chat panel in AI Help: close button goes back to Explore.
+document.getElementById("ruby-chat-close")?.addEventListener("click", () => {
+  showMarsView("explore");
+});
 
 // Spoken route briefing. The backend does the phrasing; this supplies the
 // context only the UI knows: endpoint labels, traverse assumptions, and the

@@ -48,9 +48,9 @@ function storePreference(value) {
   }
 }
 
-export function initRubyWidget({ getSelection, hasSelectionSource = () => true }) {
+export function initRubyWidget({ getSelection, hasSelectionSource = () => true, inline = false }) {
   const fab = document.getElementById("ruby-fab");
-  const chat = document.getElementById("ruby-chat");
+  const chat = document.getElementById("ruby-chat") || document.querySelector("[data-ruby-chat]");
   if (!fab || !chat) return { refreshContext() {}, open() {}, close() {} };
 
   const log = document.getElementById("ruby-chat-log");
@@ -372,25 +372,26 @@ export function initRubyWidget({ getSelection, hasSelectionSource = () => true }
   // ---- Open / close -------------------------------------------------------
 
   function open() {
-    chat.hidden = false;
-    fab.setAttribute("aria-expanded", "true");
+    if (!inline) chat.hidden = false;
+    if (fab) fab.setAttribute("aria-expanded", "true");
     refreshContext();
     welcome();
     checkServices();
-    scrollToEnd(); // the layout may have changed while the chat was closed
+    scrollToEnd();
     input.focus();
   }
 
   function close({ restoreFocus = true } = {}) {
-    if (chat.hidden) return;
+    if (!inline && chat.hidden) return;
+    if (inline && chat.hidden) return;
     stopAudio();
     const hadFocus = chat.contains(document.activeElement);
-    chat.hidden = true;
-    fab.setAttribute("aria-expanded", "false");
-    if (restoreFocus && hadFocus) fab.focus();
+    if (!inline) chat.hidden = true;
+    if (fab) fab.setAttribute("aria-expanded", "false");
+    if (restoreFocus && hadFocus && fab) fab.focus();
   }
 
-  fab.addEventListener("click", () => (chat.hidden ? open() : close()));
+  if (fab) fab.addEventListener("click", () => (chat.hidden ? open() : close()));
   closeButton.addEventListener("click", () => close());
   chat.addEventListener("keydown", (event) => {
     if (event.key === "Escape") {

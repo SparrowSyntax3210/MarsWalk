@@ -289,7 +289,7 @@
 
         <details class="route-advanced">
           <summary>Options and legend</summary>
-          <label class="vision-toggle" for="route-vision-toggle"><input id="route-vision-toggle" type="checkbox"><span><strong>Experimental Jezero image + terrain layer</strong><small>Soft A* cost only · weak-label prototype</small></span></label>
+          <label class="vision-toggle" for="route-vision-toggle"><input id="route-vision-toggle" type="checkbox"><span><strong>Experimental Jezero image + terrain layer</strong><small>Opt-in · strongest supported 25% soft cost · weak-label prototype</small></span></label>
           <div class="route-advanced-actions"><button id="show-global-map" class="global-map-button" type="button">Show whole Mars</button><button id="clear-route-button" class="global-map-button" type="button">Clear endpoints</button></div>
           <div class="route-legend" aria-label="Route segment colours">
             <span><i class="terrain-swatch swatch-safe"></i>Safe · cost &lt; 0.33</span>
@@ -323,7 +323,7 @@
           <label class="crew-only" hidden>O₂ supply (kg)<input id="mission-oxygen-budget" type="number" min="0" step="0.1" value="100"></label>
           <label class="crew-only" hidden>O₂ assumption (kg/person/sol)<input id="mission-oxygen-rate" type="number" min="0" step="0.01" value="0.84"></label>
         </div>
-        <label class="mission-vision-toggle"><input id="mission-use-vision" type="checkbox"><span><strong>Include experimental Jezero vision cost</strong><small>Optional, soft cost only; weak-label model, not a validated hazard map.</small></span></label>
+        <label class="mission-vision-toggle"><input id="mission-use-vision" type="checkbox"><span><strong>Include experimental Jezero vision cost</strong><small>Optional 25% soft cost; weak-label model, not a validated hazard map.</small></span></label>
         <div class="mission-actions"><button id="mission-plan-button" class="card-action" type="button">Compare routes & plan mission</button><button id="mission-clear-button" class="global-map-button" type="button">Clear endpoints and results</button></div>
         <div id="mission-status" class="mission-status" role="status" aria-live="polite">Choose a start and destination on the map or enter coordinates.</div>
         <section id="mission-results" class="mission-results" hidden aria-live="polite">
@@ -335,11 +335,37 @@
         </section>
         <details class="mission-audit"><summary>Audit a custom traverse</summary><p>Paste a GeoJSON LineString or a list of [longitude, latitude] points. We sample up to 20 points from the global MDEM point service, then report sampled slope and local elevation variation. This is a coarse screening aid, not a high-resolution DTM hazard audit.</p><textarea id="mission-custom-route" rows="4" placeholder='{"type":"LineString","coordinates":[[137.80,-5.40],[137.90,-5.35]]}'></textarea><button id="mission-audit-button" class="card-action" type="button">Audit custom traverse</button><div id="mission-audit-result" class="mission-audit-result" role="status"></div></details>
       </section>
-      <section class="section-card assistant-card" id="assistant-panel" hidden>
-        <div class="assistant-symbol">✧</div><div class="section-kicker">MARSWALK ASSISTANT</div><h2>AI Help</h2>
-        <p>Ask for plain-language explanations of the selected location, map layers, or route results. The LLM connection will be added here.</p>
-        <div class="assistant-status"><span class="status-dot status-dot-muted"></span>Assistant service not connected yet</div>
-        <div class="assistant-example"><span>EXAMPLE QUESTIONS</span><p>What does this slope value mean?</p><p>Why does the route avoid this area?</p><p>Which map layer am I looking at?</p></div>
+      <section class="section-card assistant-card" id="assistant-panel" data-ruby-chat="true" hidden aria-label="Ruby — Mars AI assistant">
+        <!-- Ruby's inline chat. The floating button is hidden while this view
+             is active; the panel itself is the chat container (#ruby-chat). -->
+        <header class="ruby-chat-head ruby-inline-head">
+          <span class="ruby-chat-avatar" aria-hidden="true">
+            <img class="ruby-fab-img" src="./assets/ruby-mascot.webp" alt="" width="38" height="38" decoding="async" draggable="false" />
+            <svg class="ruby-gem" viewBox="0 0 48 48" aria-hidden="true" focusable="false"><path d="M14 8h20l9 12-19 21L5 20z" fill="currentColor" opacity=".25"/><path d="M14 8h20l9 12-19 21L5 20zM5 20h38M17 20l7 21 7-21M14 8l3 12M34 8l-3 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+          </span>
+          <div class="ruby-chat-titles">
+            <h2 id="ruby-chat-title">Ruby</h2>
+            <p class="ruby-chat-context" id="ruby-chat-context">Mars assistant</p>
+          </div>
+          <button type="button" class="ruby-icon-button" id="ruby-chat-voice" aria-pressed="false" aria-label="Speak Ruby's replies aloud" title="Speak replies">
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 9.5v5h3.5L12 19V5L7.5 9.5H4z" fill="currentColor"/><path class="ruby-voice-waves" d="M15 9a4 4 0 0 1 0 6M17.5 6.5a8 8 0 0 1 0 11" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+          </button>
+          <!-- Close navigates back to Explore instead of hiding the panel -->
+          <button type="button" class="ruby-icon-button" id="ruby-chat-close" aria-label="Back to Explore" title="Back to Explore">
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          </button>
+        </header>
+        <div class="ruby-chat-log" id="ruby-chat-log" role="log" aria-live="polite" aria-label="Conversation with Ruby"></div>
+        <div class="ruby-chat-chips" id="ruby-chat-chips" aria-label="Suggested questions"></div>
+        <form class="ruby-chat-form" id="ruby-chat-form" autocomplete="off">
+          <label class="ruby-visually-hidden" for="ruby-chat-input">Ask Ruby a question</label>
+          <input id="ruby-chat-input" type="text" maxlength="500" placeholder="Ask about this place or Mars…" enterkeyhint="send" />
+          <button type="button" class="ruby-icon-button" id="ruby-chat-mic" aria-pressed="false" aria-label="Ask by voice" title="Ask by voice" hidden>
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="9" y="3" width="6" height="11" rx="3" fill="currentColor"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+          </button>
+          <button type="submit" class="ruby-send" id="ruby-chat-send">Send</button>
+        </form>
+        <p class="ruby-chat-note" id="ruby-chat-note">Answers come from MarsWalk's map data first. Anything else is answered by an AI model, which can be wrong.</p>
       </section>
       <section class="section-card ar-card" id="ar-panel" hidden>
         <div class="section-kicker">3D / AR ENGINE</div><h2>Mars in 3D</h2>
