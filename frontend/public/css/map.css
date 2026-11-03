@@ -550,7 +550,6 @@ body { overflow:hidden; background:#100d0b; color:#f8eee5; }
 .legend-note,.terrain-class-summary { color:#9c8877; font-size:8px; line-height:1.45; }.legend-note { margin-top:2px; }.terrain-class-summary { color:#d0bba8; }
 
 .vision-toggle{display:flex;align-items:flex-start;gap:8px;padding:9px 10px;border:1px solid rgba(224,139,82,.2);border-radius:6px;background:rgba(255,255,255,.025);cursor:pointer}.vision-toggle input{margin:2px 0 0;accent-color:#31b99d}.vision-toggle span{display:grid;gap:3px}.vision-toggle strong{color:#e8d6c5;font-size:9px}.vision-toggle small{color:#a99482;font-size:8px;line-height:1.4}
-.review-link { display:flex; align-items:center; gap:10px; margin:0 2px 9px; padding:9px 10px; border:1px solid rgba(234,133,70,.22); border-radius:8px; color:#f4e5d7; background:rgba(218,111,52,.08); text-decoration:none; }.review-link:hover { border-color:rgba(255,180,121,.55); background:rgba(218,111,52,.15); }.review-link > span:last-child { display:grid; gap:4px; }.review-link strong { font-size:9px; }.review-link small { color:#b9a08c; font-size:8px; }.review-link-icon { color:#ffc18d; font-size:18px; }
 
 /* Mission Planner inputs, route comparison, budgets, and custom-line review. */
 .mission-card { gap:10px; }.mission-card > p { margin:0; }

@@ -4,7 +4,6 @@ const path = require("path");
 const elevationRoutes = require("./routes/elevation");
 const pointRoutes = require("./routes/point");
 const routePlanRoutes = require("./routes/plan");
-const visionReviewRoutes = require("./routes/vision-review");
 const cellRoutes = require("./routes/cell");
 const rubyRoutes = require("./routes/ruby");
 
@@ -22,7 +21,6 @@ app.use("/api/elevation", elevationRoutes);
 app.use("/api/point", pointRoutes);
 app.use("/api/cell", cellRoutes);
 app.use("/api/route", routePlanRoutes);
-app.use("/api/vision-review", visionReviewRoutes);
 app.use("/api/ruby", rubyRoutes);
 app.use(express.static(publicDirectory));
 
