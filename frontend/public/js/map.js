@@ -1450,6 +1450,7 @@ async function calculateMarsRoute(options = {}) {
   routeHintEl.textContent =
     "Checking local HiRISE/CTX stereo DTM coverage, then the global Parquet grid…";
   lastRoutePayload = null;
+  clearActiveUnityRoute();
   routeStatus = "calculating";
   renderRouteState();
   try {
@@ -2356,7 +2357,6 @@ requestAnimationFrame(animate);
 const workspace = document.querySelector("#workspace-layout");
 const navItems = [...document.querySelectorAll(".nav-item[data-view]")];
 const missionPanel = document.querySelector("#mission-panel");
-const assistantPanel = document.querySelector("#assistant-panel");
 const arPanel = document.querySelector("#ar-panel");
 
 const VIEW_HEADLINES = {
@@ -2366,6 +2366,10 @@ const VIEW_HEADLINES = {
 };
 
 function showMarsView(view) {
+  if (view === "ai-help") {
+    window.RubyAssistant?.open?.();
+    return;
+  }
   if (view !== "route" && routeSelectionActive) {
     routeSelectionActive = false;
     routeSelectionTarget = null;
@@ -2387,6 +2391,19 @@ function showMarsView(view) {
     view === "route" ? "none" : "";
   if (view === "route") renderRouteState();
   else restoreExploreSidebarCard();
+  const routeVisible = view === "route";
+  if (plannedRouteLayer) {
+    if (routeVisible && !mars2DMap.hasLayer(plannedRouteLayer)) plannedRouteLayer.addTo(mars2DMap);
+    else if (!routeVisible && mars2DMap.hasLayer(plannedRouteLayer)) mars2DMap.removeLayer(plannedRouteLayer);
+  }
+  [routeStartMarker, routeEndMarker].forEach((marker) => {
+    if (!marker) return;
+    if (routeVisible && !mars2DMap.hasLayer(marker)) marker.addTo(mars2DMap);
+    else if (!routeVisible && mars2DMap.hasLayer(marker)) mars2DMap.removeLayer(marker);
+  });
+  if (plannedRouteGlobeLayer) plannedRouteGlobeLayer.visible = routeVisible;
+  if (routeStartGlobeMarker) routeStartGlobeMarker.visible = routeVisible;
+  if (routeEndGlobeMarker) routeEndGlobeMarker.visible = routeVisible;
   navItems.forEach((item) => {
     const active = item.dataset.view === view;
     item.classList.toggle("is-active", active);
@@ -2394,20 +2411,8 @@ function showMarsView(view) {
   });
   missionPanel.hidden = view !== "mission";
   routePanel.hidden = view !== "route";
-  assistantPanel.hidden = view !== "ai-help";
   arPanel.hidden = view !== "ar-engine";
 
-  // When AI Help is active, Ruby is displayed inline in the panel; the
-  // floating button is redundant and visually clutters the corner.
-  const fab = document.getElementById("ruby-fab");
-  if (fab) fab.hidden = view === "ai-help";
-
-  if (view === "ai-help") {
-    window.RubyAssistant?.refreshContext();
-    // Defer open() by one frame so the panel is visible before
-    // welcome() tries to focus the input.
-    requestAnimationFrame(() => window.RubyAssistant?.open?.());
-  }
   requestAnimationFrame(() => {
     mars2DMap.invalidateSize({ pan: false });
     resizeScene();
@@ -3000,12 +3005,78 @@ placeBriefing = initPlaceBriefing({ getSelection: exploreSelectionSnapshot });
 
 // The floating Ruby assistant (js/ruby-assistant.js) asks for the Explore
 // selection through this hook, so it answers about the place the user picked.
-window.MarsWalkRuby = { getSelection: exploreSelectionSnapshot };
+async function performRubyAction(action) {
+  const validModes = new Set(["safest", "balanced", "fastest"]);
+  if (
+    !action ||
+    action.type !== "plan_route" ||
+    !validModes.has(action.mode) ||
+    !action.start ||
+    !action.end ||
+    ![action.start.lat, action.start.lon, action.end.lat, action.end.lon].every(Number.isFinite)
+  ) {
+    throw new Error("Ruby sent an invalid route request. Please say the start and destination again.");
+  }
 
-// The inline chat panel in AI Help: close button goes back to Explore.
-document.getElementById("ruby-chat-close")?.addEventListener("click", () => {
-  showMarsView("explore");
-});
+  showMarsView("route");
+  const priority = document.querySelector(`input[name="route-mode"][value="${action.mode}"]`);
+  if (priority) {
+    priority.checked = true;
+    priority.dispatchEvent(new Event("change", { bubbles: true }));
+  } else {
+    routeModeSelect.value = action.mode;
+  }
+  if (!setRouteEndpoint("start", action.start.lat, action.start.lon, action.start.name) ||
+      !setRouteEndpoint("end", action.end.lat, action.end.lon, action.end.name)) {
+    throw new Error("Those route coordinates are outside the supported range.");
+  }
+
+  const route = await calculateMarsRoute();
+  if (!route) throw new Error(routeHintEl.textContent || "The route planner could not calculate that route.");
+
+  const { speed, hoursPerSol } = traverseAssumptions();
+  let narration = null;
+  try {
+    const response = await fetch("/api/ruby/narrate/route", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        route,
+        context: {
+          mode: route.mode || action.mode,
+          startName: action.start.name,
+          endName: action.end.name,
+          speedKmh: speed,
+          drivingHoursPerSol: hoursPerSol,
+          nearbyFeatures: namedFeaturesNearRoute(route).slice(0, 4).map((feature) => feature.name),
+        },
+      }),
+    });
+    if (response.ok) narration = await response.json();
+  } catch {
+    // The planner result remains usable if Ruby's narration endpoint is offline.
+  }
+
+  const routeSummary = narration?.summary ||
+    `Route calculated from ${action.start.name} to ${action.end.name} with ${ROUTE_MODES[action.mode].label.toLowerCase()} priority. Review the route and terrain details on the map.`;
+  const reply = `Here is your route. ${routeSummary}`;
+  return {
+    reply,
+    speech: reply,
+    explanation: narration?.detail || narration?.text || reply,
+    source: "route",
+  };
+}
+
+window.MarsWalkRuby = {
+  getSelection: exploreSelectionSnapshot,
+  explainSelectedPoint: (options) => placeBriefing?.explainSelectedPoint(options) || null,
+  getCurrentView: currentView,
+  performAction: performRubyAction,
+  showTourView: (view) => {
+    if (["explore", "route", "mission", "ar-engine"].includes(view)) showMarsView(view);
+  },
+};
 
 // Spoken route briefing. The backend does the phrasing; this supplies the
 // context only the UI knows: endpoint labels, traverse assumptions, and the

@@ -16,18 +16,19 @@ python/mars_datasets/
 │   │   └── route_validation/       # Small Curiosity traverse validation sample
 │   └── processed/
 │       ├── feature_store/global_tiles/10deg/  # 648 local global-route Parquet tiles
+│       ├── route_regions/                     # Six compact grids for hosted routes
 │       └── vision_prototype/jezero_ctx/       # Jezero model inputs, patches, metrics, outputs
 └── scripts/                        # Route, preprocessing, vision, and validation code
 ```
 
-`data/raw` and large parts of `data/processed` are local-only and ignored by Git. Keep a backup of `feature_store/global_tiles/10deg/` if you need offline global routing; the repository contains the tile catalog, but not the 25+ GB Parquet payloads.
+`data/raw` and large parts of `data/processed` are local-only and ignored by Git. Keep a backup of `feature_store/global_tiles/10deg/` if you need offline global routing; the repository contains the tile catalog, but not the 25+ GB Parquet payloads. Six small route grids under `data/processed/route_regions/` are tracked for hosted regional routing.
 
 ## Route request flow
 
-1. The backend starts `scripts/adaptive_route_planner.py`.
-2. It looks for a local stereo DTM covering the requested route, using `data/catalog/local_dtm_products.json` and files under `data/raw/dem/local_dtms/`.
-3. If a local DTM is unavailable or cannot support the requested corridor, it calls `scripts/global_tile_route_planner.py`, which reads only the relevant local Parquet tile(s) and runs A* on their grid.
-4. If `use_vision_model` is enabled and the route lies within the Jezero raster footprint, the planner may add the experimental probability surface as a low-weight cost. Outside that one scene, global Parquet routes remain terrain-only.
+1. The hosted backend starts `scripts/global_tile_route_planner.py` directly.
+2. It loads the compact regional Parquet grid(s) intersecting the route corridor and runs A* using elevation, slope, roughness, dune, and crater context.
+3. Hosted routes require both endpoints to be inside the same supported region and are limited to 100 km per request.
+4. Local development can still run `scripts/adaptive_route_planner.py` directly when stereo data is available; that planner retains local-DTM and optional Jezero vision behavior.
 
 The global grid has nominal approximately 1 km cells; the local CTX DTM is about 20 m posting and the local HiRISE DTM is about 1 m posting. Posting is not the same as guaranteed hazard-detection resolution. The Jezero model currently uses weak DTM-derived labels and should remain an optional experiment until better labels and evaluation are available. Its U-Net gets CTX intensity, elevation, TTA slope, aspect components, plane-residual roughness, and local relief. A* separately scores slope/relief/roughness and a route-direction-aware aspect cross-slope term; coarse dune/crater context remains separate.
 

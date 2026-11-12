@@ -1,0 +1,28 @@
+{
+  "region": "Elysium Planitia",
+  "source": "tile_10deg_w130_s0.parquet",
+  "bounds": {
+    "west": 133.9,
+    "south": 2.5,
+    "east": 137.9,
+    "north": 6.5
+  },
+  "rows": 56169,
+  "columns": [
+    "row",
+    "col",
+    "latitude_deg",
+    "longitude_east_deg",
+    "elevation_m",
+    "slope_deg",
+    "aspect_deg",
+    "roughness_3x3_range_m",
+    "cell_width_m",
+    "cell_height_m",
+    "geology_unit_code",
+    "dune_hit",
+    "dune_distance_km",
+    "crater_edge_distance_km"
+  ],
+  "resolution_note": "Derived from the MarsWalk global grid; nominal approximately 1 km cells."
+}

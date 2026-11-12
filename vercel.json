@@ -1,0 +1,10 @@
+{
+  "version": 2,
+  "outputDirectory": "frontend/public",
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "https://marswalk-api.onrender.com/api/:path*"
+    }
+  ]
+}

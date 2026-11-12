@@ -88,40 +88,80 @@ export function initPlaceBriefing({ getSelection }) {
     );
   }
 
-  async function explain() {
-    const selection = getSelection();
-    if (!selection) {
-      setStatus("Select a location on the map first.", true);
-      return;
+  async function loadSelectedPointNarration({ signal } = {}) {
+    let selection = getSelection();
+    if (!selection) throw new Error("Select a location on the map first.");
+    for (let attempt = 0; selection.status === "loading" && attempt < 20; attempt += 1) {
+      await new Promise((resolve, reject) => {
+        const timer = setTimeout(() => {
+          signal?.removeEventListener("abort", onAbort);
+          resolve();
+        }, 250);
+        const onAbort = () => {
+          clearTimeout(timer);
+          signal?.removeEventListener("abort", onAbort);
+          reject(new DOMException("Request aborted", "AbortError"));
+        };
+        if (signal?.aborted) onAbort();
+        else signal?.addEventListener("abort", onAbort, { once: true });
+      });
+      selection = getSelection();
     }
-    if (!selection.point && !selection.cell) {
-      setStatus("Still loading data for this location; try again in a moment.", true);
-      return;
+    if (!selection || !Number.isFinite(selection.lat) || !Number.isFinite(selection.lon)) {
+      throw new Error("I can’t read the selected map point. Select a point on the Explore map and try again.");
     }
 
+    if (!selection.point || !selection.cell) {
+      const query = new URLSearchParams({ lat: String(selection.lat), lon: String(selection.lon) });
+      const retry = async (path) => {
+        const response = await fetch(`${path}?${query}`, { signal });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(payload.error || `Map lookup failed (${response.status}).`);
+        return payload;
+      };
+      const [pointResult, cellResult] = await Promise.allSettled([
+        selection.point ? Promise.resolve(selection.point) : retry("/api/point"),
+        selection.cell ? Promise.resolve(selection.cell) : retry("/api/cell"),
+      ]);
+      selection = {
+        ...selection,
+        point: pointResult.status === "fulfilled" ? pointResult.value : null,
+        cell: cellResult.status === "fulfilled" ? cellResult.value : null,
+      };
+    }
+    if (!selection.point && !selection.cell) {
+      throw new Error("The selected point’s terrain services are unavailable right now. Please try again shortly.");
+    }
+
+    const response = await fetch("/api/ruby/narrate/point", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        point: selection.point || null,
+        cell: selection.cell || null,
+        context: {
+          lat: selection.lat,
+          lon: selection.lon,
+          title: selection.title,
+          feature: selection.feature,
+          region: selection.region,
+          nearest: selection.nearest,
+        },
+      }),
+      signal,
+    });
+    const narration = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(narration.error || `Briefing failed (${response.status}).`);
+    return narration;
+  }
+
+  async function explain() {
     reset();
     playButton.disabled = true;
     setStatus("Ruby is reading this location…");
 
     try {
-      const response = await fetch("/api/ruby/narrate/point", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          point: selection.point || null,
-          cell: selection.cell || null,
-          context: {
-            lat: selection.lat,
-            lon: selection.lon,
-            title: selection.title,
-            feature: selection.feature,
-            region: selection.region,
-            nearest: selection.nearest,
-          },
-        }),
-      });
-      const narration = await response.json();
-      if (!response.ok) throw new Error(narration.error || `Briefing failed (${response.status})`);
+      const narration = await loadSelectedPointNarration();
 
       textEl.textContent = narration.summary;
       sections = narration.sections || [];
@@ -139,6 +179,7 @@ export function initPlaceBriefing({ getSelection }) {
   playButton.addEventListener("click", explain);
 
   return {
+    explainSelectedPoint: loadSelectedPointNarration,
     /** Shows the panel for a usable selection; hides and clears it otherwise. */
     setAvailable(available) {
       panel.hidden = !available;

@@ -7,15 +7,20 @@
     <title>MarsWalk · Jezero in 3D</title>
     <link rel="stylesheet" href="./css/jezero-3d.css" />
     <script type="importmap">
-      { "imports": { "three": "https://unpkg.com/three@0.180.0/build/three.module.js" } }
+      {
+        "imports": {
+          "three": "https://unpkg.com/three@0.180.0/build/three.module.js",
+          "three/addons/": "https://unpkg.com/three@0.180.0/examples/jsm/"
+        }
+      }
     </script>
     <script type="module" src="./js/jezero-3d.js"></script>
   </head>
   <body>
-    <canvas id="jezero-scene" aria-label="Three-dimensional Jezero Crater terrain built from a CTX stereo elevation model"></canvas>
+    <canvas id="jezero-scene" aria-label="Three-dimensional Jezero terrain loaded from a glTF model"></canvas>
     <section class="viewer-panel" id="viewer-panel" aria-label="Jezero 3D controls">
       <a class="viewer-back" href="./dashboard.html">← MarsWalk workspace</a>
-      <div class="viewer-title"><span>JEZERO · 5 × 5 KM WALKABLE TEST AREA</span><h1>Jezero terrain prototype</h1><p>Explore a local patch of Mars in real scale using the aligned CTX image and stereo elevation model.</p></div>
+      <div class="viewer-title"><span>BLENDER GLTF · JEZERO TERRAIN</span><h1>Explore your Jezero model</h1><p>This scene loads the mesh and its embedded surface texture directly from your assets folder.</p></div>
       <div class="viewer-actions">
         <button id="motion-button" type="button">Enable phone motion</button>
         <button id="stereo-button" type="button" aria-pressed="false">Split-screen: off</button>
@@ -32,7 +37,7 @@
           <li>For Android browser motion, connect USB with debugging enabled, run <code>adb reverse tcp:5000 tcp:5000</code>, then open <code>http://localhost:5000/jezero-3d.html</code>.</li>
         </ul>
       </details>
-      <div class="data-note"><strong>About this view</strong><span id="data-resolution">Loading terrain metadata…</span><span>Elevation and distances use 1:1 scale. Terrain is sampled from the available CTX DTM, so small rocks are not modeled.</span><span>Data: USGS Astrogeology CTX stereo terrain and orthorectified image.</span></div>
+      <div class="data-note"><strong>About this view</strong><span id="data-resolution">Loading model…</span><span>~20 m DTM source · ~159 m rendered mesh · 40.6 × 93.2 km area.</span><span>Height is visually exaggerated 2×; the scene is a regional preview, not a rover-scale simulator.</span><span>Data: USGS Astrogeology CTX stereo terrain and orthorectified image.</span></div>
     </section>
     <div class="viewer-readout"><span>HEADING</span><strong id="heading-value">0°</strong><span id="position-value">Jezero Crater</span></div>
     <div class="touch-pad" id="touch-pad" aria-label="Touch movement controls">
@@ -42,8 +47,7 @@
       <button type="button" data-move="right" aria-label="Move right">▶</button>
     </div>
     <div class="vr-guide" aria-hidden="true"><span></span></div>
-    <div id="loading-cover" class="loading-cover"><div class="loader-ring"></div><strong>Preparing Jezero terrain</strong><span>Loading compact image and elevation layers</span></div>
+    <div id="loading-cover" class="loading-cover"><div class="loader-ring"></div><strong>Preparing Jezero model</strong><span>Loading the glTF mesh and texture</span></div>
     <script type="module" src="./js/ruby-assistant.js"></script>
   </body>
-</html>
-
+</html>\n

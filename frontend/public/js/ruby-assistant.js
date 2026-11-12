@@ -51,12 +51,12 @@ function markup(mascotUrl) {
   <form class="ruby-chat-form" id="ruby-chat-form" autocomplete="off">
     <label class="ruby-visually-hidden" for="ruby-chat-input">Ask Ruby a question</label>
     <input id="ruby-chat-input" type="text" maxlength="500" placeholder="Ask about Mars or this place…" enterkeyhint="send" />
-    <button type="button" class="ruby-icon-button" id="ruby-chat-mic" aria-pressed="false" aria-label="Ask by voice" title="Ask by voice" hidden>
+    <button type="button" class="ruby-icon-button" id="ruby-chat-mic" aria-pressed="false" aria-label="Enable Ruby wake word" title="Enable Ruby wake word" hidden>
       <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="9" y="3" width="6" height="11" rx="3" fill="currentColor"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
     </button>
     <button type="submit" class="ruby-send" id="ruby-chat-send">Send</button>
   </form>
-  <p class="ruby-chat-note" id="ruby-chat-note">Answers come from MarsWalk's map data first. Anything else is answered by an AI model, which can be wrong.</p>
+  <p class="ruby-chat-note" id="ruby-chat-note">Click the mic to enable wake word listening, then say “Ruby” and your request. It stays on while this page is open.</p>
 </section>`;
 }
 
@@ -83,12 +83,26 @@ function mount() {
 
   loadStylesheet();
 
-  // On pages that already embed the chat panel (e.g. dashboard.html has it inside
-  // #assistant-panel), only inject the FAB button. The chat markup is already
-  // in the DOM and ruby-widget.js will find it by its element IDs.
+  // On the dashboard, reuse its existing chat markup and move it out of the
+  // hidden workspace panel so the same floating chat works in every view.
   const chatAlreadyInPage = Boolean(document.getElementById("ruby-chat-form"));
 
   if (chatAlreadyInPage) {
+    // The dashboard's chat used to live inside its AI Help view, which meant
+    // the Ruby button could not open it from the other views. Move the same
+    // chat node to the document body so it becomes one reusable overlay.
+    const existingChat = document.getElementById("assistant-panel");
+    if (existingChat) {
+      existingChat.id = "ruby-chat";
+      existingChat.className = "ruby-chat";
+      existingChat.setAttribute("role", "dialog");
+      existingChat.setAttribute("aria-modal", "false");
+      existingChat.setAttribute("aria-labelledby", "ruby-chat-title");
+      existingChat.hidden = true;
+      existingChat.querySelector(".ruby-inline-head")?.classList.remove("ruby-inline-head");
+      document.body.append(existingChat);
+    }
+
     const fab = document.createElement("button");
     fab.type = "button";
     fab.className = "ruby-fab";
@@ -121,7 +135,7 @@ function mount() {
       }
     },
     hasSelectionSource: () => typeof window.MarsWalkRuby?.getSelection === "function",
-    inline: chatAlreadyInPage,
+    inline: false,
   });
 }
 

@@ -2,6 +2,7 @@ const express = require("express");
 const { askRuby } = require("../services/ruby-brain");
 const { extractRouteFacts, narrateRoute } = require("../services/route-narration");
 const { extractPointFacts, narratePoint } = require("../services/point-narration");
+const { parseRubyAction } = require("../services/ruby-actions");
 const openrouter = require("../services/openrouter");
 
 const router = express.Router();
@@ -74,6 +75,16 @@ router.post("/ask", async (req, res, next) => {
   } catch (error) {
     return next(error);
   }
+});
+
+// Ruby actions are intentionally parsed by a deterministic allow-list. The
+// model that answers questions is never allowed to emit executable commands.
+router.post("/action", (req, res) => {
+  const message = readText(req.body, "message", MAX_MESSAGE_LENGTH);
+  if (!message) {
+    return res.status(400).json({ error: `A message of 1 to ${MAX_MESSAGE_LENGTH} characters is required.` });
+  }
+  return res.json(parseRubyAction(message));
 });
 
 // Whether the language-model fallback is available. Never includes the key.

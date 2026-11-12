@@ -20,6 +20,7 @@ const DEFAULT_MODELS = [
   "cohere/north-mini-code:free",
   "google/gemma-4-31b-it:free",
 ];
+const FREE_MODEL_ROUTER = "openrouter/free";
 // Measured on the free models with a real prompt: answers normally take 0.3 to
 // 5 seconds, but a model occasionally stalls (one took the full 25 s timeout
 // before the next model answered in 2 s). So each model gets a short window,
@@ -182,11 +183,16 @@ async function chat({ system, messages, maxTokens = 1000, temperature = 0.4 }) {
   let lastError = null;
   const startedAt = Date.now();
   const models = config.models.length ? config.models : await getFreeModels(config);
-  // Start successive requests at different models so a hot or throttled
-  // provider does not receive every first attempt. On failure, walk the rest.
+  // Keep a configured model as the preferred first choice, but immediately
+  // fall back to OpenRouter's live free-model router if its provider is empty
+  // or throttled. This avoids spending the full retry budget on stale free IDs.
   const start = nextModelIndex++ % models.length;
-  const orderedModels = models.slice(start).concat(models.slice(0, start));
-  for (const model of orderedModels) {
+  const rotatedModels = models.slice(start).concat(models.slice(0, start));
+  const orderedModels = config.models.length
+    ? [rotatedModels[0], FREE_MODEL_ROUTER, ...rotatedModels.slice(1)]
+    : [FREE_MODEL_ROUTER, ...rotatedModels];
+  const uniqueModels = [...new Set(orderedModels)];
+  for (const model of uniqueModels) {
     const remaining = TOTAL_BUDGET_MS - (Date.now() - startedAt);
     if (remaining < 2_000) break; // not enough left for another model to answer
     try {

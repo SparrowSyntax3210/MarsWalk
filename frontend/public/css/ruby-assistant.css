@@ -23,12 +23,15 @@
 }
 html.ruby-lift .ruby-fab,
 html.ruby-lift .ruby-chat { --rb-bottom: 134px; }
+html.ruby-lift .ruby-presence { --rb-bottom: 134px; }
 
 /* Immersive modes use the whole screen; Ruby stays out of the way there. */
 body.headset-mode .ruby-fab,
 body.headset-mode .ruby-chat,
 body.stereo .ruby-fab,
-body.stereo .ruby-chat { display: none; }
+body.stereo .ruby-chat,
+body.headset-mode .ruby-presence,
+body.stereo .ruby-presence { display: none; }
 
 .ruby-visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
@@ -39,6 +42,16 @@ body.stereo .ruby-chat { display: none; }
 .ruby-fab:active { transform: scale(0.97); }
 .ruby-fab:focus-visible { outline: 3px solid var(--rb-safe); outline-offset: 3px; }
 .ruby-fab[aria-expanded="true"] { border-color: var(--rb-safe); box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5), 0 0 0 5px rgba(67, 214, 163, 0.14); }
+.ruby-state-dot { position: absolute; right: 2px; bottom: 2px; width: 13px; height: 13px; border: 2px solid #1b110a; border-radius: 50%; background: #43d6a3; box-shadow: 0 0 8px rgba(67, 214, 163, 0.7); }
+.ruby-fab[data-ruby-state="sleeping"] .ruby-state-dot { background: #90909a; box-shadow: none; }
+.ruby-fab[data-ruby-state="working"] .ruby-state-dot,
+.ruby-fab[data-ruby-state="listening"] .ruby-state-dot { background: #ffd34f; box-shadow: 0 0 8px rgba(255, 211, 79, 0.7); }
+.ruby-presence { --rb-bottom: max(22px, env(safe-area-inset-bottom)); --rb-right: max(22px, env(safe-area-inset-right)); position: fixed; right: var(--rb-right); bottom: calc(var(--rb-bottom) + 76px); z-index: 2002; max-width: min(340px, calc(100vw - 28px)); padding: 10px 14px; border: 1px solid rgba(242, 237, 218, 0.2); border-radius: 12px; background: linear-gradient(158deg, #1d150f, #140e0a); box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5); color: #f2edda; font: 600 12px/1.4 "Manrope", system-ui, sans-serif; }
+.ruby-presence[hidden] { display: none; }
+.ruby-chat:not([hidden]) ~ .ruby-presence { display: none; }
+.ruby-presence[data-state="sleeping"] { border-color: rgba(144, 144, 154, 0.55); }
+.ruby-presence[data-state="working"],
+.ruby-presence[data-state="listening"] { border-color: rgba(255, 211, 79, 0.55); }
 
 /* The picture is clipped to a circle; object-fit keeps the mascot undistorted. */
 .ruby-fab-img { display: block; width: 100%; height: 100%; border-radius: 50%; object-fit: cover; object-position: center; pointer-events: none; user-select: none; -webkit-user-drag: none; }
@@ -71,6 +84,10 @@ body.stereo .ruby-chat { display: none; }
 .ruby-chat-context { margin: 2px 0 0; overflow: hidden; color: var(--rb-dim); font: 500 10.5px var(--rb-mono); letter-spacing: 0.02em; text-overflow: ellipsis; white-space: nowrap; }
 .ruby-chat-context.is-ready { color: var(--rb-safe); }
 .ruby-chat-context.is-loading { color: var(--rb-caution); }
+.ruby-state-pill { display: inline-flex; align-items: center; margin-top: 4px; padding: 2px 7px; border: 1px solid rgba(67, 214, 163, 0.35); border-radius: 999px; color: #43d6a3; font: 600 9px/1.35 "DM Mono", Consolas, monospace; text-transform: uppercase; letter-spacing: .06em; }
+.ruby-state-pill[data-state="sleeping"] { border-color: rgba(144, 144, 154, 0.45); color: #b4b4bc; }
+.ruby-state-pill[data-state="working"],
+.ruby-state-pill[data-state="listening"] { border-color: rgba(255, 211, 79, 0.45); color: #ffd34f; }
 
 .ruby-icon-button { display: grid; place-items: center; flex: 0 0 auto; width: 32px; height: 32px; padding: 0; border: 1px solid transparent; border-radius: 8px; background: transparent; color: var(--rb-dim); cursor: pointer; }
 .ruby-icon-button svg { width: 18px; height: 18px; }

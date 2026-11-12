@@ -1,0 +1,7 @@
+tile_id,region,west,south,east,north,status,parquet_path,manifest_path,rows,bytes
+region_jezero,Jezero Crater,75.58,16.38,79.58,20.38,complete,data/processed/route_regions/jezero.parquet,data/processed/route_regions/jezero.manifest.json,50955,1258743
+region_gale,Gale Crater,135.8,-7.4,139.8,-3.4000000000000004,complete,data/processed/route_regions/gale.parquet,data/processed/route_regions/gale.manifest.json,56169,1406160
+region_olympus-mons,Olympus Mons,-135.8,16.65,-131.8,20.65,complete,data/processed/route_regions/olympus-mons.parquet,data/processed/route_regions/olympus-mons.manifest.json,47163,1176370
+region_valles-marineris,Valles Marineris,-61.2,-15.9,-57.2,-11.9,complete,data/processed/route_regions/valles-marineris.parquet,data/processed/route_regions/valles-marineris.manifest.json,39508,1017918
+region_hellas-planitia,Hellas Planitia,68.5,-44.4,72.5,-40.4,complete,data/processed/route_regions/hellas-planitia.parquet,data/processed/route_regions/hellas-planitia.manifest.json,35313,858314
+region_elysium-planitia,Elysium Planitia,133.9,2.5,137.9,6.5,complete,data/processed/route_regions/elysium-planitia.parquet,data/processed/route_regions/elysium-planitia.manifest.json,56169,1151247

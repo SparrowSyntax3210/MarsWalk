@@ -5,9 +5,9 @@ MarsWalk is a Mars surface map and route-planning prototype. The current route A
 ## What currently runs
 
 - The frontend displays Mars imagery and lets a user choose route endpoints.
-- `POST /api/route` prefers a cached or catalogued local HiRISE/CTX stereo DTM. When no suitable local DTM is available, it uses the local global 10-degree Parquet terrain grid.
+- `POST /api/route` runs A* over the compact hosted grids for Jezero, Gale, Olympus Mons, Valles Marineris, Hellas Planitia, and Elysium Planitia. Routes stay within one supported area and are limited to 100 km.
 - The Jezero prototype uses an image/terrain gated-fusion model on one CTX scene. It can add an optional soft A* cost, while A* separately scores DTM elevation, slope, roughness, downslope aspect, and available coarse dune/crater factors. The model is trained on weak terrain-derived labels and is not a validated rover safety classifier.
-- `GET /api/route/status` reports how many catalogued Parquet tiles are present on this machine.
+- `GET /api/route/status` reports the hosted regional route-grid availability.
 
 The planners return route geometry, costs, and terrain metrics. They do not currently predict validated travel time, energy, wheel slip, radiation dose, or survival probability.
 
@@ -28,12 +28,12 @@ Choose **Mission Planner** in the sidebar to enter endpoints, select robotic or 
 1. Install Node dependencies with `npm install`.
 2. Create `.env` from `.env.example` if you need to change the host or port.
 3. Start the app with `npm start`.
-4. The route API uses `python/mars_datasets/scripts/.venv/Scripts/python.exe` when it exists. Create that environment and install `requirements-route.txt` there if needed. Install `requirements-vision.txt` for model training.
+4. The route API uses `python/mars_datasets/scripts/.venv/Scripts/python.exe` when it exists, otherwise `py` or `python3` on PATH. Install `python/mars_datasets/scripts/requirements-hosted-route.txt` for hosted regional routing. Install `requirements-route.txt` for local stereo DTM routing and `requirements-vision.txt` for model training.
 
 The local Python environment and downloaded data are intentionally excluded from Git.
 
 ## Data layout
 
-See [`python/mars_datasets/README.md`](python/mars_datasets/README.md) for the data inventory, route selection flow, scripts, and local-data requirements. Small source catalogs and schemas live in `python/mars_datasets/data/catalog/`; the 648 global Parquet tiles, local stereo DTMs, and Jezero raster artifacts remain local because they are large.
+See [`python/mars_datasets/README.md`](python/mars_datasets/README.md) for the data inventory, route selection flow, scripts, and local-data requirements. The 648 global Parquet tiles, local stereo DTMs, and Jezero raster artifacts remain local because they are large; six small cropped route grids are included for the hosted website.
 
-A clone of this repository contains the code and catalogs, but cannot calculate routes until the local Parquet tiles are copied into `python/mars_datasets/data/processed/feature_store/global_tiles/10deg/`. Jezero stereo DTM and optional vision behavior also require the corresponding local files described in the package README.
+For the Vercel and Render setup, see [DEPLOYMENT.md](DEPLOYMENT.md). A clone can calculate routes in the six included regions; global routes and Jezero stereo/vision features still require the corresponding local datasets described in the package README.

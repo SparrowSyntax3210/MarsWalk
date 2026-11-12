@@ -790,6 +790,10 @@ body { font-family: var(--x-sans); color: var(--x-text); background: var(--x-bg)
 
 /* Map HUD */
 .route-hud-top, .route-hud-bottom { display: none; }
+.workspace-layout:not([data-view="route"]) #route-panel,
+.workspace-layout:not([data-view="route"]) .route-hud-top,
+.workspace-layout:not([data-view="route"]) .route-hud-bottom,
+.workspace-layout:not([data-view="route"]) .route-region-search { display: none !important; }
 .workspace-layout[data-view="route"] .route-hud-top,
 .workspace-layout[data-view="route"] .route-hud-bottom { display: flex; }
 .route-hud-top { position: absolute; top: 12px; left: 12px; right: 12px; z-index: 1000; align-items: center; justify-content: space-between; gap: 14px; padding: 13px 16px; border: 1px solid var(--x-border); border-radius: 12px; background: var(--x-glass); backdrop-filter: blur(10px); box-shadow: 0 14px 34px rgba(7, 4, 2, 0.35); }

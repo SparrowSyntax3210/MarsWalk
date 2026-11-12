@@ -1,0 +1,8 @@
+services:
+  - type: web
+    name: marswalk-api
+    runtime: docker
+    plan: free
+    healthCheckPath: /api/health
+    dockerfilePath: ./Dockerfile
+    dockerContext: .

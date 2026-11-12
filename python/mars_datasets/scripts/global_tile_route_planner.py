@@ -15,14 +15,13 @@ import numpy as np
 import pandas as pd
 
 ROOT = Path(__file__).resolve().parent.parent
-TILE_DIR = ROOT / "data" / "processed" / "feature_store" / "global_tiles" / "10deg"
-CATALOG = TILE_DIR.parent / "tiles_catalog.csv"
+TILE_DIR = ROOT / "data" / "processed" / "route_regions"
+CATALOG = TILE_DIR / "catalog.csv"
 MARS_RADIUS_M = 3_389_500.0
 CORRIDOR_MARGIN_KM = 20.0
-MAX_ROUTE_KM = 500.0
+MAX_ROUTE_KM = 100.0
 MAX_TILES_PER_REQUEST = 12
 MAX_SNAP_KM = 5.0
-CRATER_AVOID_BUFFER_KM = 0.5
 ROUTE_COLUMNS = [
     "row", "col", "latitude_deg", "longitude_east_deg", "elevation_m",
     "slope_deg", "aspect_deg", "roughness_3x3_range_m", "cell_width_m",
@@ -104,6 +103,14 @@ def load_route_corridor(payload):
     north = min(90.0, max(start[0], end[0]) + lat_margin)
     lon_intervals = longitude_intervals(start[1], end[1], mean_lat, CORRIDOR_MARGIN_KM)
     catalog = read_catalog()
+    supported = [t for t in catalog if
+        float(t["west"]) <= start[1] <= float(t["east"]) and
+        float(t["south"]) <= start[0] <= float(t["north"]) and
+        float(t["west"]) <= end[1] <= float(t["east"]) and
+        float(t["south"]) <= end[0] <= float(t["north"])]
+    if not supported:
+        names = ", ".join(t["region"] for t in catalog)
+        raise ValueError(f"Hosted terrain routing currently supports routes within one regional data area: {names}.")
     expected = [t for t in catalog if intersects_tile(t, south, north, lon_intervals)]
     available = []
     missing = []
@@ -117,9 +124,9 @@ def load_route_corridor(payload):
     if missing:
         preview = ", ".join(missing[:6])
         more = f" and {len(missing)-6} more" if len(missing) > 6 else ""
-        raise ValueError(f"Route corridor includes {len(missing)} tile(s) that are not complete ({preview}{more}). Build those global tiles before routing.")
+        raise ValueError(f"Route corridor includes {len(missing)} regional data area(s) that are unavailable ({preview}{more}).")
     if not available:
-        raise ValueError("No completed global Parquet tiles cover this route area yet.")
+        raise ValueError("No hosted Mars terrain data covers this route area yet.")
     if len(available) > MAX_TILES_PER_REQUEST:
         raise ValueError(f"This route corridor touches {len(available)} tiles; the current request limit is {MAX_TILES_PER_REQUEST}. Shorten the route or reduce the corridor margin.")
 
@@ -239,8 +246,10 @@ def classify_cells(frame, geometry, costs, max_slope):
     classes = np.full(len(frame), "unknown", dtype=object)
     dune_hit = frame.dune_hit.fillna(0).to_numpy(dtype=int) == 1
     crater_distance = frame.crater_edge_distance_km.fillna(10.0).to_numpy(dtype=float)
-    crater_blocked = crater_distance <= CRATER_AVOID_BUFFER_KM
-    hard_block = geometry["valid"] & (dune_hit | crater_blocked | (geometry["slope_deg"] > max_slope))
+    # The source crater field is nearest-center-minus-radius clipped at zero;
+    # it cannot distinguish a crater interior from the rim itself. Keep it as
+    # a soft cost above, and only hard-block explicit dune hits and steep cells.
+    hard_block = geometry["valid"] & (dune_hit | (geometry["slope_deg"] > max_slope))
     classes[hard_block] = "impassable"
     candidates = geometry["valid"] & ~hard_block & np.isfinite(costs)
     classes[candidates & (costs >= 0.67)] = "high"
@@ -365,7 +374,7 @@ def plan(payload):
     class_counts = {name: int(np.sum(path_classes == name)) for name in ("impassable", "high", "caution", "safe", "unknown")}
     return {
         "status": "success",
-        "planner": "A* over completed global 10-degree Parquet tiles",
+        "planner": "A* over hosted regional Mars terrain grids",
         "mode": mode,
         "data_resolution_m": "nominally about 1 km; varies by source raster and latitude",
         "tile_count_used": tile_count,
@@ -381,7 +390,7 @@ def plan(payload):
             "weights": {"slope": 0.50, "height_difference": 0.25, "plane_roughness": 0.15, "terrain_semantics": 0.10},
             "global_normalizers": {"slope_deg": 25.0, "height_difference_m": 200.0, "roughness_rms_m": 50.0, "dune_proximity_km": 3.0, "crater_proximity_km": 5.0},
             "class_counts_on_route": class_counts,
-            "class_thresholds": {"safe_max_exclusive": 0.33, "caution_min": 0.33, "high_min": 0.67, "impassable": f"mapped dune, crater footprint/near-edge zone (≤{CRATER_AVOID_BUFFER_KM:.1f} km), or slope above selected mode limit", "unknown": "incomplete 3x3 DEM neighborhood"},
+            "class_thresholds": {"safe_max_exclusive": 0.33, "caution_min": 0.33, "high_min": 0.67, "impassable": "mapped dune hit or slope above selected mode limit", "unknown": "incomplete 3x3 DEM neighborhood"},
             "semantic_factors_used": ["mapped dune proximity", "approximate crater-edge proximity"],
             "semantic_factors_not_scored": ["geology unit code has no calibrated mobility-risk lookup"],
         },
@@ -400,7 +409,7 @@ def plan(payload):
         "cost_factors": ["least-squares plane slope", "3x3 plane residual RMS roughness", "3x3 elevation height difference", "mapped dune proximity and exclusion", "approximate crater-edge proximity and exclusion"],
         "limitations": [
             "Only completed tiles are routable; the catalog currently represents partial global coverage.",
-            "Mapped dune-hit cells and cells above the selected mode slope limit are impassable.",
+            "Mapped dune-hit cells and cells above the selected mode slope limit are impassable; crater proximity contributes a soft cost because this grid cannot distinguish crater interiors from rims.",
             "The 3x3 fit spans about 3 km at this global DEM resolution, not the published rover-local 2 m window.",
             "The published 10 degree slope, 0.15 m height, and 0.03 m roughness thresholds are not applied to roughly 1 km cells.",
             "Global normalizers and 0.33/0.67 risk bands are provisional planning values and need calibration.",

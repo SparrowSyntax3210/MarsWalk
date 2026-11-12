@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 
 const canvas = document.querySelector("#jezero-scene");
 const statusEl = document.querySelector("#viewer-status");
@@ -56,15 +57,12 @@ let previousFrame = performance.now();
 let lastGamepadLook = 0;
 let controllerYaw = 0;
 let controllerPitch = 0;
-let sceneData;
-let elevationValues;
-let validValues;
-let gridColumns = 256;
-let gridRows = 588;
+let terrainRoot;
+let terrainBounds;
 let sceneWidth;
 let sceneLength;
-let crop = null;
-let groundHeightAtStart = 0;
+const terrainRaycaster = new THREE.Raycaster();
+const downDirection = new THREE.Vector3(0, -1, 0);
 let walkedMeters = 0;
 
 function setStatus(message, kind = "") {
@@ -100,112 +98,67 @@ function onOrientation(event) {
   headingValue.textContent = `${Math.round((THREE.MathUtils.radToDeg(displayEuler.y) + 360) % 360)}°`;
 }
 
-function heightAtGrid(column, row) {
-  const x = THREE.MathUtils.clamp(Math.round(column), 0, gridColumns - 1);
-  const y = THREE.MathUtils.clamp(Math.round(row), 0, gridRows - 1);
-  const index = y * gridColumns + x;
-  if (!validValues[index]) return groundHeightAtStart;
-  return elevationValues[index];
-}
-
-function terrainY(column, row) {
-  return (heightAtGrid(column, row) - sceneData.elevation_min_m) * sceneData.horizontal_scene_scale * sceneData.vertical_exaggeration;
-}
-
-function buildTerrain(heightPixels, texture) {
-  const imgWidth = heightPixels.width;
-  const imgHeight = heightPixels.height;
-  const requestedSizeM = Math.min(sceneData.region_size_m ?? 5000, sceneData.width_m, sceneData.height_m);
-  const pixelsPerMeterX = (imgWidth - 1) / sceneData.width_m;
-  const pixelsPerMeterY = (imgHeight - 1) / sceneData.height_m;
-  const cropWidth = Math.min(imgWidth - 1, Math.max(2, Math.round(requestedSizeM * pixelsPerMeterX)));
-  const cropHeight = Math.min(imgHeight - 1, Math.max(2, Math.round(requestedSizeM * pixelsPerMeterY)));
-  const cropX = Math.floor((imgWidth - cropWidth) / 2);
-  const cropY = Math.floor((imgHeight - cropHeight) / 2);
-  crop = { x: cropX, y: cropY, width: cropWidth, height: cropHeight };
-  gridRows = cropHeight + 1;
-  gridColumns = cropWidth + 1;
-  const sampleCanvas = document.createElement("canvas");
-  sampleCanvas.width = imgWidth;
-  sampleCanvas.height = imgHeight;
-  const context = sampleCanvas.getContext("2d", { willReadFrequently: true });
-  context.drawImage(heightPixels, 0, 0);
-  const pixels = context.getImageData(0, 0, imgWidth, imgHeight).data;
-  const vertexCount = gridColumns * gridRows;
-  const positions = new Float32Array(vertexCount * 3);
-  const uvs = new Float32Array(vertexCount * 2);
-  elevationValues = new Float32Array(vertexCount);
-  validValues = new Uint8Array(vertexCount);
-  sceneWidth = (cropWidth / (imgWidth - 1)) * sceneData.width_m * sceneData.horizontal_scene_scale;
-  sceneLength = (cropHeight / (imgHeight - 1)) * sceneData.height_m * sceneData.horizontal_scene_scale;
-
-  for (let row = 0; row < gridRows; row += 1) {
-    const sourceRow = cropY + row;
-    for (let column = 0; column < gridColumns; column += 1) {
-      const sourceColumn = cropX + column;
-      const sourceIndex = (sourceRow * imgWidth + sourceColumn) * 4;
-      const index = row * gridColumns + column;
-      const normalized = pixels[sourceIndex] * 256 + pixels[sourceIndex + 1];
-      elevationValues[index] = sceneData.elevation_min_m + (normalized / 65535) * (sceneData.elevation_max_m - sceneData.elevation_min_m);
-      validValues[index] = pixels[sourceIndex + 2] > 127 ? 1 : 0;
-      positions[index * 3] = (column / (gridColumns - 1) - 0.5) * sceneWidth;
-      positions[index * 3 + 1] = terrainY(column, row);
-      positions[index * 3 + 2] = (0.5 - row / (gridRows - 1)) * sceneLength;
-      uvs[index * 2] = sourceColumn / (imgWidth - 1);
-      uvs[index * 2 + 1] = 1 - sourceRow / (imgHeight - 1);
-    }
-  }
-
-  const indices = [];
-  for (let row = 0; row < gridRows - 1; row += 1) {
-    for (let column = 0; column < gridColumns - 1; column += 1) {
-      const northwest = row * gridColumns + column;
-      const northeast = northwest + 1;
-      const southwest = northwest + gridColumns;
-      const southeast = southwest + 1;
-      if (validValues[northwest] && validValues[northeast] && validValues[southwest]) indices.push(northwest, southwest, northeast);
-      if (validValues[northeast] && validValues[southwest] && validValues[southeast]) indices.push(northeast, southwest, southeast);
-    }
-  }
-
-  const geometry = new THREE.BufferGeometry();
-  geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
-  geometry.setAttribute("uv", new THREE.BufferAttribute(uvs, 2));
-  geometry.setIndex(indices);
-  geometry.computeVertexNormals();
-  const terrain = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({ map: texture, roughness: 1, metalness: 0, side: THREE.DoubleSide }));
-  scene.add(terrain);
-
-  const centerElevation = heightAtGrid(Math.floor(gridColumns / 2), Math.floor(gridRows / 2));
-  groundHeightAtStart = (centerElevation - sceneData.elevation_min_m) * sceneData.horizontal_scene_scale * sceneData.vertical_exaggeration;
-  const startColumn = Math.floor(gridColumns / 2);
-  const startRow = Math.floor(gridRows * 0.72);
-  camera.position.set(0, terrainY(startColumn, startRow) + 2, (0.5 - startRow / (gridRows - 1)) * sceneLength);
-  positionValue.textContent = "Jezero · CTX stereo DTM";
+function surfaceHeightAt(x, z) {
+  if (!terrainRoot || !terrainBounds) return null;
+  terrainRaycaster.set(new THREE.Vector3(x, terrainBounds.max.y + 5, z), downDirection);
+  const hit = terrainRaycaster.intersectObject(terrainRoot, true)[0];
+  return hit?.point.y ?? null;
 }
 
 async function loadScene() {
-  const [manifestResponse] = await Promise.all([fetch("./data/jezero3d/scene.json")]);
-  if (!manifestResponse.ok) throw new Error("The compact Jezero terrain files were not found. Run the Jezero web terrain export script first.");
-  sceneData = await manifestResponse.json();
-  const textureLoader = new THREE.TextureLoader();
-  const [surfaceTexture, heightPixels] = await Promise.all([
-    new Promise((resolve, reject) => textureLoader.load(sceneData.texture, resolve, undefined, reject)),
-    new Promise((resolve, reject) => {
-      const image = new Image();
-      image.onload = () => resolve(image);
-      image.onerror = () => reject(new Error("Could not load the Jezero heightmap image."));
-      image.src = sceneData.heightmap;
-    }),
-  ]);
-  surfaceTexture.colorSpace = THREE.SRGBColorSpace;
-  surfaceTexture.anisotropy = Math.min(renderer.capabilities.getMaxAnisotropy(), 4);
-  buildTerrain(heightPixels, surfaceTexture);
-  const renderedSpacing = Math.round(Math.max(sceneWidth / (gridColumns - 1), sceneLength / (gridRows - 1)));
-  document.querySelector("#data-resolution").textContent = `~${Math.round(sceneData.source_resolution_m[0])} m DTM source · ~${renderedSpacing} m rendered mesh · ${(sceneWidth / 1000).toFixed(1)} × ${(sceneLength / 1000).toFixed(1)} km playable patch.`;
+  const gltf = await new GLTFLoader().loadAsync("./assets/source/jezero.gltf");
+  terrainRoot = gltf.scene;
+  const originalBounds = new THREE.Box3().setFromObject(terrainRoot);
+  const originalCenter = originalBounds.getCenter(new THREE.Vector3());
+  terrainRoot.position.x -= originalCenter.x;
+  terrainRoot.position.y -= originalBounds.min.y;
+  terrainRoot.position.z -= originalCenter.z;
+  scene.add(terrainRoot);
+  terrainRoot.updateMatrixWorld(true);
+
+  const bounds = new THREE.Box3().setFromObject(terrainRoot);
+  terrainBounds = bounds.clone();
+  const dimensions = bounds.getSize(new THREE.Vector3());
+  sceneWidth = dimensions.x;
+  sceneLength = dimensions.z;
+  terrainRaycaster.far = dimensions.y + 10;
+  let vertexCount = 0;
+  terrainRoot.traverse((object) => {
+    if (object.isMesh) vertexCount += object.geometry.attributes.position?.count ?? 0;
+  });
+
+  // Try several candidate spawn positions and pick the one with the highest
+  // ground — that lands on the crater rim with a dramatic view across the floor.
+  const candidates = [
+    [0,               -sceneLength * 0.38],  // south edge
+    [0,                sceneLength * 0.38],  // north edge
+    [-sceneWidth * 0.38,  0],               // west edge
+    [ sceneWidth * 0.38,  0],               // east edge
+    [-sceneWidth * 0.25, -sceneLength * 0.25], // SW
+    [ sceneWidth * 0.25, -sceneLength * 0.25], // SE
+  ];
+  let bestX = 0, bestZ = 0, bestH = -Infinity;
+  for (const [cx, cz] of candidates) {
+    const h = surfaceHeightAt(cx, cz);
+    if (h !== null && h > bestH) { bestH = h; bestX = cx; bestZ = cz; }
+  }
+  if (bestH === -Infinity) { bestX = 0; bestZ = -sceneLength * 0.32; bestH = surfaceHeightAt(bestX, bestZ) ?? dimensions.y / 2; }
+
+  // Step 15% inward from the rim toward the centre so the crater floor
+  // opens up ahead rather than a slope filling the whole frame.
+  const inwardFrac = 0.15;
+  const spawnX = bestX * (1 - inwardFrac);
+  const spawnZ = bestZ * (1 - inwardFrac);
+  const spawnH = surfaceHeightAt(spawnX, spawnZ) ?? bestH;
+
+  camera.position.set(spawnX, spawnH + 1.7, spawnZ);
+  // Face toward the terrain centre so the crater floor is ahead.
+  controllerYaw = Math.atan2(-spawnX, -spawnZ);
+  controllerPitch = -0.12; // ~7° down — horizon visible with terrain below
+  document.querySelector("#data-resolution").textContent = `${(sceneWidth/1000).toFixed(1)} × ${(sceneLength/1000).toFixed(1)} km footprint · ${dimensions.y.toFixed(0)} m relief · ${vertexCount.toLocaleString()} vertices.`;
   loadingCover.classList.add("is-hidden");
   setTimeout(() => loadingCover.remove(), 450);
-  setStatus("Jezero terrain loaded. Turn your head to look around; use keys, touch arrows, or a gamepad to move.", "good");
+  setStatus("Your Jezero glTF model is loaded. Look around and walk with keys, touch arrows, or a gamepad.", "good");
   resize();
 }
 
@@ -302,25 +255,29 @@ function movementInput() {
 }
 
 function moveCamera(delta) {
-  if (!elevationValues) return;
+  if (!terrainRoot) return;
   const movement = movementInput();
+  if (Math.abs(movement.x) < 0.001 && Math.abs(movement.z) < 0.001) return;
   camera.getWorldDirection(forward);
   forward.y = 0;
   if (forward.lengthSq() > 0) forward.normalize();
   right.set(forward.z, 0, -forward.x).normalize();
   const previousX = camera.position.x;
   const previousZ = camera.position.z;
-  const speed = (keys.has("ShiftLeft") || keys.has("ShiftRight") ? 12 : 4.5) * sceneData.horizontal_scene_scale;
+  const speed = keys.has("ShiftLeft") || keys.has("ShiftRight") ? 50 : 8;
   camera.position.addScaledVector(forward, -movement.z * speed * delta);
   camera.position.addScaledVector(right, movement.x * speed * delta);
-  camera.position.x = THREE.MathUtils.clamp(camera.position.x, -sceneWidth / 2, sceneWidth / 2);
-  camera.position.z = THREE.MathUtils.clamp(camera.position.z, -sceneLength / 2, sceneLength / 2);
-  const column = ((camera.position.x / sceneWidth) + 0.5) * (gridColumns - 1);
-  const row = (0.5 - camera.position.z / sceneLength) * (gridRows - 1);
-  const floor = terrainY(column, row);
-  camera.position.y = floor + 1.7 * sceneData.horizontal_scene_scale;
+  camera.position.x = THREE.MathUtils.clamp(camera.position.x, -sceneWidth / 2 + 0.5, sceneWidth / 2 - 0.5);
+  camera.position.z = THREE.MathUtils.clamp(camera.position.z, -sceneLength / 2 + 0.5, sceneLength / 2 - 0.5);
+  const floor = surfaceHeightAt(camera.position.x, camera.position.z);
+  if (floor === null) {
+    camera.position.x = previousX;
+    camera.position.z = previousZ;
+    return;
+  }
+  camera.position.y = floor + 1.7;
   const distance = Math.hypot(camera.position.x - previousX, camera.position.z - previousZ);
-  walkedMeters += distance / sceneData.horizontal_scene_scale;
+  walkedMeters += distance;
   if (distance > 0) positionValue.textContent = `Jezero · moved ${(walkedMeters / 1000).toFixed(2)} km`;
 }
 
