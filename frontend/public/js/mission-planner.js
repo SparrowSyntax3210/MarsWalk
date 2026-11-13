@@ -70,6 +70,7 @@ async function requestRoute(mode, values) {
     method: "POST",
     headers: { "Content-Type": "application/json", Accept: "application/json" },
     body: JSON.stringify(requestOptionsFor(mode, values)),
+    signal: AbortSignal.timeout(120_000),
   });
   const payload = await response.json();
   if (!response.ok) throw new Error(payload.error || `Route calculation failed (${response.status})`);

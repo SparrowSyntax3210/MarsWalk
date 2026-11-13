@@ -11,7 +11,7 @@ const pythonExe = process.env.MARS_PYTHON ||
 const plannerScript = path.join(workspaceRoot, "scripts", "global_tile_route_planner.py");
 const MAX_INPUT_BYTES = 16 * 1024;
 const MAX_OUTPUT_BYTES = 5 * 1024 * 1024;
-const TIMEOUT_MS = 300_000;
+const TIMEOUT_MS = 120_000;
 router.get("/status", (_req, res) => {
   const catalogPath = path.join(workspaceRoot, "data", "processed", "route_regions", "catalog.csv");
   try {
@@ -78,6 +78,13 @@ router.post("/", (req, res) => {
   });
   child.stderr.on("data", (chunk) => { stderr = (stderr + chunk).slice(-4000); });
   child.on("error", (error) => finish(503, { error: `Could not start the local Python route planner: ${error.message}` }));
+  res.on("close", () => {
+    if (!res.writableEnded && !settled) {
+      settled = true;
+      clearTimeout(timer);
+      child.kill();
+    }
+  });
   child.on("close", (code) => {
     if (settled) return;
     let result;

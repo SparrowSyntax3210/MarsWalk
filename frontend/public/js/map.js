@@ -1450,7 +1450,6 @@ async function calculateMarsRoute(options = {}) {
   routeHintEl.textContent =
     "Checking local HiRISE/CTX stereo DTM coverage, then the global Parquet grid…";
   lastRoutePayload = null;
-  clearActiveUnityRoute();
   routeStatus = "calculating";
   renderRouteState();
   try {
@@ -1472,6 +1471,7 @@ async function calculateMarsRoute(options = {}) {
           ? { max_slope_deg: options.maxSlope }
           : {}),
       }),
+      signal: AbortSignal.timeout(120_000),
     });
     const payload = await response.json();
     if (!response.ok)
