@@ -23,7 +23,7 @@ The free Render web service can sleep when idle and then take time to wake. That
 ## Deploy Vercel
 
 1. Import the same GitHub repository into Vercel, using the repository root as the project root.
-2. Keep the included `vercel.json`; it publishes `frontend/public` and forwards `/api/*` to Render.
+2. Keep the included `vercel.json`; it selects the **Other** preset, skips frontend package installation/building, publishes `frontend/public`, and forwards `/api/*` to Render.
 3. Deploy, then open the Vercel URL and check Ruby text, map data, and route status.
 
 If the Render hostname differs from `marswalk-api.onrender.com`, replace the host in `vercel.json` and push that small change. The frontend remains a static site; route planning and Ruby text run on Render.

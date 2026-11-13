@@ -1,5 +1,9 @@
 {
+  "$schema": "https://openapi.vercel.sh/vercel.json",
   "version": 2,
+  "framework": null,
+  "installCommand": "echo Static frontend has no package install step",
+  "buildCommand": "echo Static HTML, CSS, and JavaScript are ready",
   "outputDirectory": "frontend/public",
   "rewrites": [
     {
