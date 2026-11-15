@@ -127,38 +127,42 @@ async function loadScene() {
     if (object.isMesh) vertexCount += object.geometry.attributes.position?.count ?? 0;
   });
 
-  // Try several candidate spawn positions and pick the one with the highest
-  // ground — that lands on the crater rim with a dramatic view across the floor.
-  const candidates = [
-    [0,               -sceneLength * 0.38],  // south edge
-    [0,                sceneLength * 0.38],  // north edge
-    [-sceneWidth * 0.38,  0],               // west edge
-    [ sceneWidth * 0.38,  0],               // east edge
-    [-sceneWidth * 0.25, -sceneLength * 0.25], // SW
-    [ sceneWidth * 0.25, -sceneLength * 0.25], // SE
-  ];
-  let bestX = 0, bestZ = 0, bestH = -Infinity;
-  for (const [cx, cz] of candidates) {
-    const h = surfaceHeightAt(cx, cz);
-    if (h !== null && h > bestH) { bestH = h; bestX = cx; bestZ = cz; }
+  // Start at the model's actual center instead of selecting the highest rim
+  // point. If the center falls in a DTM gap, search nearby and use the closest
+  // valid ground sample so the camera still spawns in the central basin.
+  let spawnX = 0;
+  let spawnZ = 0;
+  let spawnH = surfaceHeightAt(spawnX, spawnZ);
+  if (spawnH === null) {
+    let nearestDistance = Infinity;
+    const searchX = sceneWidth * 0.12;
+    const searchZ = sceneLength * 0.12;
+    for (let row = -4; row <= 4; row += 1) {
+      for (let column = -4; column <= 4; column += 1) {
+        const x = (column / 4) * searchX;
+        const z = (row / 4) * searchZ;
+        const height = surfaceHeightAt(x, z);
+        const distance = x * x + z * z;
+        if (height !== null && distance < nearestDistance) {
+          spawnX = x;
+          spawnZ = z;
+          spawnH = height;
+          nearestDistance = distance;
+        }
+      }
+    }
   }
-  if (bestH === -Infinity) { bestX = 0; bestZ = -sceneLength * 0.32; bestH = surfaceHeightAt(bestX, bestZ) ?? dimensions.y / 2; }
-
-  // Step 15% inward from the rim toward the centre so the crater floor
-  // opens up ahead rather than a slope filling the whole frame.
-  const inwardFrac = 0.15;
-  const spawnX = bestX * (1 - inwardFrac);
-  const spawnZ = bestZ * (1 - inwardFrac);
-  const spawnH = surfaceHeightAt(spawnX, spawnZ) ?? bestH;
+  if (spawnH === null) spawnH = dimensions.y / 2;
 
   camera.position.set(spawnX, spawnH + 1.7, spawnZ);
-  // Face toward the terrain centre so the crater floor is ahead.
-  controllerYaw = Math.atan2(-spawnX, -spawnZ);
-  controllerPitch = -0.12; // ~7° down — horizon visible with terrain below
+  // Face across the central terrain with a slight downward angle for a broad
+  // basin view while keeping the camera at rover-scale height.
+  controllerYaw = Math.PI;
+  controllerPitch = -0.2;
   document.querySelector("#data-resolution").textContent = `${(sceneWidth/1000).toFixed(1)} × ${(sceneLength/1000).toFixed(1)} km footprint · ${dimensions.y.toFixed(0)} m relief · ${vertexCount.toLocaleString()} vertices.`;
   loadingCover.classList.add("is-hidden");
   setTimeout(() => loadingCover.remove(), 450);
-  setStatus("Your Jezero glTF model is loaded. Look around and walk with keys, touch arrows, or a gamepad.", "good");
+  setStatus("Your Jezero glTF model is loaded. You are at the center of the terrain; look around for a broad basin view or walk with keys, touch arrows, or a gamepad.", "good");
   resize();
 }
 
