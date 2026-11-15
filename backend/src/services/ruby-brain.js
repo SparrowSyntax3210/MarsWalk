@@ -187,13 +187,17 @@ function findPlaces(text) {
     if (places.some((existing) => distanceKm(existing.lat, existing.lon, place.lat, place.lon) < 10)) return;
     places.push(place);
   };
-  const lower = text.toLowerCase();
+  // Ruby is also the official name of a Mars crater. When it is used as the
+  // assistant's opening name ("Ruby, tell me about Belva"), don't mistake it
+  // for a requested location and send that unrelated crater to the model.
+  const placeQuery = text.replace(/^\s*(?:hey\s+)?ruby\b[,!:;\s]*/i, "");
+  const lower = placeQuery.toLowerCase();
   for (const alias of NAMED_PLACES) {
     if (alias.names.some((name) => keywordRegex(name).test(lower))) {
       add({ label: alias.label, lat: alias.lat, lon: alias.lon, type: null, diameterKm: null });
     }
   }
-  for (const { feature } of findFeaturesInText(text)) {
+  for (const { feature } of findFeaturesInText(placeQuery)) {
     add({ label: feature.name, lat: feature.lat, lon: feature.lon, type: feature.type, diameterKm: feature.diameterKm });
   }
   return places.slice(0, 2);
@@ -502,7 +506,13 @@ async function exactAnswer(q, targets, { selectionStatus }) {
     // A sentence that only mentions "this place" in passing is an open question
     // for the model, not a lookup.
     if (primary.kind === "selected" && !(q.aboutHere || q.words <= SHORT_QUESTION_WORDS)) return null;
-    if (!primary.facts) return missingDataReply(primary, selectionStatus);
+    // The gazetteer still has reliable type, diameter and center coordinates
+    // even when the measurement services are unavailable. Keep that useful
+    // answer as the deterministic fallback if the AI API is offline.
+    if (!primary.facts) {
+      if (wantsOverview && primary.kind === "named") return answerOverview(primary);
+      return missingDataReply(primary, selectionStatus);
+    }
     if (wantsOverview && !q.topic) return answerOverview(primary);
     if (q.safety && !q.topic) return answerSafety(primary);
     const answer = answerLocationTopic(q.topic, primary, q.text);
