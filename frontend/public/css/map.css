@@ -881,6 +881,7 @@ body { font-family: var(--x-sans); color: var(--x-text); background: var(--x-bg)
 .route-secondary { width: 100%; padding: 10px; border: 1px solid var(--x-border-strong); border-radius: 9px; background: transparent; color: var(--x-text); font: 600 12px var(--x-sans); cursor: pointer; }
 .route-secondary:hover:not(:disabled) { border-color: rgba(255, 157, 66, 0.55); background: rgba(199, 93, 40, 0.1); }
 .route-secondary:disabled { opacity: 0.4; cursor: not-allowed; }
+.route-ruby-plan:not(:disabled) { border-color: rgba(67, 214, 163, 0.55); color: #c9fff4; background: rgba(67, 214, 163, 0.08); }
 .route-panel .route-hint { margin: 0; padding: 0; border: 0; color: var(--x-dim); font-size: 11.5px; line-height: 1.55; }
 
 .route-advanced { display: grid; gap: 10px; margin-top: auto; padding: 10px 12px; border: 1px solid var(--x-border); border-radius: var(--x-radius-sm); }

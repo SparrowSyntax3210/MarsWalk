@@ -884,6 +884,44 @@ export function initRubyWidget({ getSelection, hasSelectionSource = () => true, 
     if (restoreFocus && hadFocus && fab) fab.focus();
   }
 
+  async function planRoute(action, userText = "Ruby, plan a route between the points I selected on the map.") {
+    if (pending) return false;
+    open();
+    stopAudio();
+    addUserMessage(userText);
+    history.push({ role: "user", content: userText });
+    setPending(true);
+    setPresence("working", "Ruby is planning a route between your selected map points…", true);
+    const typing = addTyping();
+    try {
+      if (action?.type !== "plan_route" ||
+          !["safest", "balanced", "fastest"].includes(action.mode) ||
+          ![action.start?.lat, action.start?.lon, action.end?.lat, action.end?.lon].every(Number.isFinite)) {
+        throw new Error("Choose valid start and destination points on the map first.");
+      }
+      if (typeof window.MarsWalkRuby?.performAction !== "function") {
+        throw new Error("The MarsWalk route planner is not ready yet.");
+      }
+      const result = await window.MarsWalkRuby.performAction(action);
+      const reply = result?.reply || "I couldn't complete that route request.";
+      typing.remove();
+      const message = addRubyMessage(reply, { source: "route", speech: result?.speech || reply });
+      history.push({ role: "assistant", content: reply });
+      if (result?.explanation) lastExplanation = result.explanation;
+      if (wantsVoice && voiceOnline) await speak(result?.speech || reply, message.playButton);
+      setReadyPresence();
+      return true;
+    } catch (error) {
+      typing.remove();
+      addRubyMessage(`I couldn't plan that route: ${error.message}`, { error: true });
+      setReadyPresence("Ruby couldn't complete that route.", true);
+      return false;
+    } finally {
+      setPending(false);
+      if (!chat.hidden) input.focus();
+    }
+  }
+
   if (fab) fab.addEventListener("click", () => (chat.hidden ? open() : close()));
   closeButton.addEventListener("click", () => close());
   chat.addEventListener("keydown", (event) => {
@@ -897,5 +935,5 @@ export function initRubyWidget({ getSelection, hasSelectionSource = () => true, 
     send(input.value);
   });
 
-  return { refreshContext, open, close };
+  return { refreshContext, open, close, planRoute };
 }

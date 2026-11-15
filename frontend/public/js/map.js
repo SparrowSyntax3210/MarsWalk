@@ -42,6 +42,7 @@ const info = {
 const layerSelectEl = document.querySelector("#layer-select");
 const zoomLabelEl = document.querySelector("#zoom-label");
 const routePlanButton = document.querySelector("#route-plan-button");
+const routeRubyPlanButton = document.querySelector("#route-ruby-plan-button");
 const routeModeSelect = document.querySelector("#route-mode-select");
 const routeVisionToggle = document.querySelector("#route-vision-toggle");
 const routeHintEl = document.querySelector("#route-hint");
@@ -1235,6 +1236,7 @@ function setRouteEndpoint(which, lat, lon, name) {
   if (missionLat) missionLat.value = point.lat.toFixed(4);
   if (missionLon) missionLon.value = point.lon.toFixed(4);
   routePlanButton.disabled = !(routeStart && routeEnd);
+  if (routeRubyPlanButton) routeRubyPlanButton.disabled = !(routeStart && routeEnd);
   routeHintEl.textContent =
     routeStart && routeEnd
       ? "Both endpoints set · choose a priority and calculate the route."
@@ -1306,6 +1308,7 @@ function clearRoutePlan() {
   lastRoutePayload = null;
   routeStatus = "draft";
   routePlanButton.disabled = true;
+  if (routeRubyPlanButton) routeRubyPlanButton.disabled = true;
   document
     .querySelectorAll("[data-route-pick]")
     .forEach((button) => button.classList.remove("is-picking"));
@@ -2950,6 +2953,32 @@ routeEndLonInput.addEventListener("change", () => {
 });
 
 routePlanButton.addEventListener("click", calculateMarsRoute);
+routeRubyPlanButton?.addEventListener("click", async () => {
+  if (!routeStart || !routeEnd) {
+    routeHintEl.textContent = "Click the map to choose both a start and destination first.";
+    return;
+  }
+  const mode = routeModeSelect.value || "balanced";
+  const action = {
+    type: "plan_route",
+    mode,
+    start: { ...routeStart, name: routeStartName || "Map selected start" },
+    end: { ...routeEnd, name: routeEndName || "Map selected destination" },
+  };
+  const userText = `Ruby, plan a ${mode} route between the two points I selected on the map.`;
+  if (typeof window.RubyAssistant?.planRoute !== "function") {
+    routeHintEl.textContent = "Ruby is still loading. Try again in a moment.";
+    return;
+  }
+  routeRubyPlanButton.disabled = true;
+  routeRubyPlanButton.textContent = "Ruby is planning…";
+  try {
+    await window.RubyAssistant.planRoute(action, userText);
+  } finally {
+    routeRubyPlanButton.disabled = !(routeStart && routeEnd);
+    routeRubyPlanButton.textContent = "Ask Ruby to plan these points";
+  }
+});
 document
   .querySelector("#clear-route-button")
   .addEventListener("click", clearRoutePlan);
