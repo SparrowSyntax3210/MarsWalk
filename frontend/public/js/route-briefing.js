@@ -4,9 +4,9 @@
 // The backend owns all phrasing and arithmetic (see
 // backend/src/services/route-narration.js) so the spoken figures cannot drift
 // from the ones on screen. This module only gathers UI-owned context, renders
-// the reply, and handles playback.
+// the reply, and speaks it with the visitor's browser system voice.
 
-const MAX_SPEECH_LENGTH = 600; // must match /api/ruby/speak
+import { cancelRubySpeech, speakRubyText } from "./ruby-speech.js";
 
 /** Reads a numeric input without throwing; returns null when unusable. */
 function optionalNumber(id) {
@@ -42,7 +42,6 @@ export function initRouteBriefing({ getRoute, getContext }) {
   const statusEl = document.getElementById("route-briefing-status");
   if (!button || !panel) return { setEnabled() {}, reset() {} };
 
-  let currentAudio = null;
   let pendingDetail = null;
 
   function setStatus(message, isError = false) {
@@ -51,9 +50,7 @@ export function initRouteBriefing({ getRoute, getContext }) {
   }
 
   function stopAudio() {
-    if (!currentAudio) return;
-    currentAudio.pause();
-    currentAudio = null;
+    cancelRubySpeech();
   }
 
   function reset() {
@@ -65,30 +62,13 @@ export function initRouteBriefing({ getRoute, getContext }) {
     setStatus("");
   }
 
-  /** Speaks one utterance. Resolves even when the voice server is unavailable. */
+  /** Speaks one utterance with the visitor's browser/operating-system voice. */
   async function speak(text) {
     if (!text) return;
-    if (text.length > MAX_SPEECH_LENGTH) {
-      setStatus("That briefing is too long to speak in one go; reading the text instead.");
-      return;
-    }
     try {
-      setStatus("Generating Ruby's voice…");
-      const response = await fetch("/api/ruby/speak", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text }),
-      });
-      if (!response.ok) {
-        const payload = await response.json().catch(() => ({}));
-        throw new Error(payload.error || `Voice request failed (${response.status})`);
-      }
-      const url = URL.createObjectURL(await response.blob());
       stopAudio();
-      currentAudio = new Audio(url);
-      currentAudio.addEventListener("ended", () => URL.revokeObjectURL(url), { once: true });
-      await currentAudio.play();
-      setStatus("Speaking in Ruby's voice.");
+      setStatus("Speaking with this device's system voice.");
+      await speakRubyText(text);
     } catch (error) {
       // The briefing text is already on screen, so this is not fatal.
       setStatus(`Voice unavailable: ${error.message}`, true);

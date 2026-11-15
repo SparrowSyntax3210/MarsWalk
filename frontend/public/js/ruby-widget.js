@@ -12,9 +12,10 @@
 // All text is inserted with textContent, never innerHTML: replies can contain
 // text that originated in an external service or a language model.
 
+import { cancelRubySpeech, rubySpeechAvailable, speakRubyText } from "./ruby-speech.js";
+
 const HISTORY_TURNS = 6; // matches what the server keeps
 const REQUEST_TIMEOUT_MS = 60_000;
-const MAX_SPEECH_LENGTH = 600; // must match /api/ruby/speak
 const QUICK_SPEECH_LENGTH = 95;
 const SPEAK_STORAGE_KEY = "ruby.speakReplies";
 const WAKE_STORAGE_KEY = "ruby.wakeWord.v2";
@@ -104,9 +105,8 @@ export function initRubyWidget({ getSelection, hasSelectionSource = () => true, 
   const history = []; // { role: "user" | "assistant", content }
   let pending = false;
   let welcomed = false;
-  let voiceOnline = false;
+  let voiceOnline = rubySpeechAvailable();
   let wantsVoice = readStoredPreference();
-  let currentAudio = null;
   let speechController = null;
   let servicesCheckedAt = 0;
   let rubyAwake = true;
@@ -561,10 +561,7 @@ export function initRubyWidget({ getSelection, hasSelectionSource = () => true, 
       speechController.abort();
       speechController = null;
     }
-    if (currentAudio) {
-      currentAudio.pause();
-      currentAudio = null;
-    }
+    cancelRubySpeech();
     log.querySelectorAll(".ruby-play[aria-busy='true']").forEach((button) => {
       button.removeAttribute("aria-busy");
       button.textContent = "▶ Play";
@@ -574,7 +571,6 @@ export function initRubyWidget({ getSelection, hasSelectionSource = () => true, 
   async function speak(text, button, { shorten = true } = {}) {
     if (!text || !voiceOnline) return;
     if (shorten) text = quickSpeech(text);
-    if (text.length > MAX_SPEECH_LENGTH) text = text.slice(0, MAX_SPEECH_LENGTH);
     const chunks = splitSpeechChunks(text, QUICK_SPEECH_LENGTH, 3);
     if (!chunks.length) return;
     stopAudio();
@@ -582,41 +578,14 @@ export function initRubyWidget({ getSelection, hasSelectionSource = () => true, 
     speechController = controller;
     if (button) {
       button.setAttribute("aria-busy", "true");
-      button.textContent = "Loading voice…";
+      button.textContent = "Speaking…";
     }
     try {
-      const fetchChunk = (chunk) => fetch("/api/ruby/speak", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: chunk }),
-        signal: controller.signal,
-      }).then(async (response) => {
-        if (!response.ok) throw new Error("voice unavailable");
-        return { blob: await response.blob() };
-      }).catch((error) => ({ error }));
-
-      let pendingChunk = fetchChunk(chunks[0]);
-      for (let index = 0; index < chunks.length; index += 1) {
-        const result = await pendingChunk;
-        if (result.error) throw result.error;
-        const url = URL.createObjectURL(result.blob);
-        const audio = new Audio(url);
-        currentAudio = audio;
-        let resolvePlayback;
-        const playbackFinished = new Promise((resolve) => { resolvePlayback = resolve; });
-        const finish = () => {
-          URL.revokeObjectURL(url);
-          if (currentAudio === audio) currentAudio = null;
-          resolvePlayback();
-        };
-        audio.addEventListener("ended", finish, { once: true });
-        audio.addEventListener("error", finish, { once: true });
-        audio.addEventListener("pause", finish, { once: true });
-        if (button) button.textContent = "■ Stop";
-        const playback = audio.play();
-        if (index + 1 < chunks.length) pendingChunk = fetchChunk(chunks[index + 1]);
-        await playback;
-        await playbackFinished;
+      if (button) button.textContent = "■ Stop";
+      for (const chunk of chunks) {
+        if (controller.signal.aborted) break;
+        const completed = await speakRubyText(chunk);
+        if (!completed) break;
       }
       if (button) {
         button.removeAttribute("aria-busy");
@@ -625,10 +594,10 @@ export function initRubyWidget({ getSelection, hasSelectionSource = () => true, 
       if (speechController === controller) speechController = null;
     } catch (error) {
       if (speechController === controller) speechController = null;
-      if (error.name === "AbortError") return;
+      if (error.name === "AbortError" || controller.signal.aborted) return;
       if (button) {
         button.removeAttribute("aria-busy");
-        button.textContent = "Voice unavailable";
+        button.textContent = "Voice error";
       }
     }
   }
@@ -639,7 +608,7 @@ export function initRubyWidget({ getSelection, hasSelectionSource = () => true, 
     voiceButton.disabled = !voiceOnline;
     voiceButton.title = voiceOnline
       ? active ? "Ruby speaks her replies. Click to mute." : "Ruby is muted. Click to hear her replies."
-      : "Ruby's voice server is offline, so replies are text only.";
+      : "This browser does not support system speech, so replies are text only.";
   }
 
   voiceButton.addEventListener("click", () => {
@@ -654,23 +623,20 @@ export function initRubyWidget({ getSelection, hasSelectionSource = () => true, 
     if (Date.now() - servicesCheckedAt < 30_000) return;
     servicesCheckedAt = Date.now();
     try {
-      const [voice, ai] = await Promise.all([
-        fetch("/api/ruby/voice-status").then((r) => r.json()),
-        fetch("/api/ruby/ai-status").then((r) => r.json()),
-      ]);
-      voiceOnline = Boolean(voice.online);
+      const ai = await fetch("/api/ruby/ai-status").then((r) => r.json());
+      voiceOnline = rubySpeechAvailable();
       const voiceNote = wakeEnabled
         ? "Wake word is on while MarsWalk is open. Say “Ruby” and then your request."
         : defaultNote;
       const aiNote = ai.configured
         ? ""
         : "AI answers are not set up, so Ruby only uses map data and built-in facts.";
-      const performanceNote = voice.online && voice.device === "cpu"
-        ? "Ruby voice is running on CPU, so speech generation may be slower."
-        : "";
-      note.textContent = [aiNote, performanceNote, voiceNote].filter(Boolean).join(" ");
+      const speechNote = voiceOnline
+        ? "Ruby speaks using a voice available on this device. The voice can vary by browser and operating system."
+        : "This browser does not support system speech, so replies are text only.";
+      note.textContent = [aiNote, speechNote, voiceNote].filter(Boolean).join(" ");
     } catch {
-      voiceOnline = false;
+      voiceOnline = rubySpeechAvailable();
     }
     syncVoiceButton();
   }

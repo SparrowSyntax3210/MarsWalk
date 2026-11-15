@@ -17,7 +17,7 @@
         <p>Ask for a greeting, the elevation at a location (for example "elevation at 18.4 N 77.5 E" or "elevation of Jezero"), or a basic Mars fact.</p>
       </header>
 
-      <div class="ruby-status" id="voice-status" role="status" aria-live="polite">Checking Ruby's voice server…</div>
+      <div class="ruby-status" id="voice-status" role="status" aria-live="polite">Checking system speech…</div>
 
       <ol class="ruby-log" id="chat-log" aria-live="polite" aria-label="Conversation with Ruby"></ol>
 
@@ -28,8 +28,8 @@
         <button type="button" id="mic-button" aria-pressed="false" aria-label="Speak to Ruby">🎙 Talk</button>
       </form>
 
-      <label class="ruby-toggle"><input type="checkbox" id="speak-toggle" checked /> Speak replies in Ruby's voice</label>
-      <p class="ruby-limit">Prototype only: rule-based answers, English only. The voice is generated on this machine by a GPT-SoVITS model fine-tuned on Ruby's own recordings. The first reply after startup takes about 15 seconds while the model warms up; later replies take about 3 seconds.</p>
+      <label class="ruby-toggle"><input type="checkbox" id="speak-toggle" checked /> Speak replies aloud</label>
+      <p class="ruby-limit">The browser uses a voice available on your device. Voice choice and pronunciation vary by browser and operating system; MarsWalk does not host a speech model.</p>
     </main>
   </body>
 </html>

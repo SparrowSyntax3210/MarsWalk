@@ -9,7 +9,7 @@ The website is a static frontend on Vercel. A small Node/Python service on Rende
 - Ruby text/data endpoints and the map's public NASA/USGS data lookups.
 - Jezero 3D preview asset used by the website.
 
-The 25+ GB all-Mars tile store, raw imagery/DTMs, Unity project, and Ruby's local voice model are not part of the hosted release. The `/api/ruby/speak` endpoint remains a local voice-server integration and will report unavailable on Render until hosted speech is added. Ruby text answers and route narration do not require that voice model. An OpenRouter API key is optional; without one, Ruby still uses the built-in Mars facts and retrieved map data.
+The 25+ GB all-Mars tile store, raw imagery/DTMs, Unity project, and Ruby's local voice model are not part of the hosted release. Ruby's chat, route, and place briefings use the visitor's browser/operating-system speech synthesis when available; no TTS model, GPU, or speech service is required on Render or Vercel. The available voice and pronunciation can vary by device. An OpenRouter API key is optional; without one, Ruby still uses the built-in Mars facts and retrieved map data.
 
 ## Deploy Render first
 

@@ -1,4 +1,5 @@
-// Ruby voice prototype: text/mic input -> /api/ruby/ask -> /api/ruby/speak.
+// Ruby voice prototype: text/mic input -> /api/ruby/ask -> browser system TTS.
+import { cancelRubySpeech, rubySpeechAvailable, speakRubyText } from "./ruby-speech.js";
 const statusBox = document.getElementById("voice-status");
 const log = document.getElementById("chat-log");
 const form = document.getElementById("ask-form");
@@ -6,8 +7,7 @@ const input = document.getElementById("ask-input");
 const micButton = document.getElementById("mic-button");
 const speakToggle = document.getElementById("speak-toggle");
 
-let voiceOnline = false;
-let currentAudio = null;
+let voiceOnline = rubySpeechAvailable();
 
 function setStatus(message, tone = "") {
   statusBox.textContent = message;
@@ -28,42 +28,24 @@ function addMessage(text, from, note = "") {
   return item;
 }
 
-async function checkVoice() {
-  try {
-    const status = await (await fetch("/api/ruby/voice-status")).json();
-    voiceOnline = Boolean(status.online);
-    if (voiceOnline) {
-      setStatus(`Ruby's voice is ready (${status.model} on ${status.device.toUpperCase()}).`, "good");
-    } else {
-      setStatus("Voice server is offline. Ruby will reply in text. Start python/ruby_voice/sovits_server.py to hear her.", "error");
-    }
-  } catch {
-    voiceOnline = false;
-    setStatus("Could not reach the MarsWalk backend.", "error");
+function checkVoice() {
+  voiceOnline = rubySpeechAvailable();
+  if (voiceOnline) {
+    setStatus("System voice is ready. The voice depends on this device and browser.", "good");
+  } else {
+    setStatus("This browser does not support system speech. Ruby will reply in text.", "error");
   }
 }
 
 async function speak(text, bubble) {
   if (!speakToggle.checked || !voiceOnline) return;
   const note = document.createElement("small");
-  note.textContent = "Generating voice…";
+  note.textContent = "Speaking with this device's system voice…";
   bubble.append(note);
 
   try {
-    const started = performance.now();
-    const response = await fetch("/api/ruby/speak", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text }),
-    });
-    if (!response.ok) throw new Error((await response.json()).error || "Voice request failed");
-
-    const url = URL.createObjectURL(await response.blob());
-    currentAudio?.pause();
-    currentAudio = new Audio(url);
-    currentAudio.addEventListener("ended", () => URL.revokeObjectURL(url), { once: true });
-    await currentAudio.play();
-    note.textContent = `Spoken in Ruby's voice · generated in ${((performance.now() - started) / 1000).toFixed(1)} s`;
+    await speakRubyText(text);
+    note.textContent = "Spoken with this device's system voice.";
   } catch (error) {
     note.textContent = `Voice unavailable: ${error.message}`;
   }
@@ -106,7 +88,7 @@ if (Recognition) {
   recognizer.maxAlternatives = 1;
 
   micButton.addEventListener("click", () => {
-    currentAudio?.pause();
+    cancelRubySpeech();
     recognizer.start();
   });
   recognizer.addEventListener("start", () => micButton.setAttribute("aria-pressed", "true"));

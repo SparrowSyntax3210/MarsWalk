@@ -3,10 +3,9 @@
 // The backend owns all phrasing and every figure (see
 // backend/src/services/point-narration.js). This module gathers the payloads
 // the panel already fetched, renders the reply, and offers each topic as its
-// own short utterance, because a full description of a place runs well past
-// the single-utterance limit of /api/ruby/speak.
+// own short utterance using the visitor's browser system voice.
 
-const MAX_SPEECH_LENGTH = 600; // must match /api/ruby/speak
+import { cancelRubySpeech, speakRubyText } from "./ruby-speech.js";
 
 export function initPlaceBriefing({ getSelection }) {
   const panel = document.getElementById("place-briefing");
@@ -16,7 +15,6 @@ export function initPlaceBriefing({ getSelection }) {
   const statusEl = document.getElementById("place-briefing-status");
   if (!panel || !playButton) return { setAvailable() {}, reset() {} };
 
-  let currentAudio = null;
   let sections = [];
 
   function setStatus(message, isError = false) {
@@ -25,9 +23,7 @@ export function initPlaceBriefing({ getSelection }) {
   }
 
   function stopAudio() {
-    if (!currentAudio) return;
-    currentAudio.pause();
-    currentAudio = null;
+    cancelRubySpeech();
   }
 
   function reset() {
@@ -41,27 +37,10 @@ export function initPlaceBriefing({ getSelection }) {
 
   async function speak(text, label) {
     if (!text) return;
-    if (text.length > MAX_SPEECH_LENGTH) {
-      setStatus(`${label} is too long to speak in one go; the text is shown above.`);
-      return;
-    }
     try {
-      setStatus(`Generating Ruby's voice for ${label.toLowerCase()}…`);
-      const response = await fetch("/api/ruby/speak", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text }),
-      });
-      if (!response.ok) {
-        const payload = await response.json().catch(() => ({}));
-        throw new Error(payload.error || `Voice request failed (${response.status})`);
-      }
-      const url = URL.createObjectURL(await response.blob());
       stopAudio();
-      currentAudio = new Audio(url);
-      currentAudio.addEventListener("ended", () => URL.revokeObjectURL(url), { once: true });
-      await currentAudio.play();
       setStatus(`Speaking: ${label.toLowerCase()}.`);
+      await speakRubyText(text);
     } catch (error) {
       // The text is already on screen, so a voice failure is not fatal.
       setStatus(`Voice unavailable: ${error.message}`, true);
